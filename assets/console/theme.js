@@ -114,9 +114,9 @@
       wrapper.append(button);
     });
 
-    const openSearch = document.querySelector('[data-console-search]');
-    if (!openSearch) return;
-    
+    const searchTriggers = document.querySelectorAll('[data-console-search], [data-console-search-compact]');
+    if (!searchTriggers.length) return;
+    const openSearch = searchTriggers[0];
     const suite = new URL(openSearch.dataset.suiteRoot || '/', location.href);
     const dialog = document.createElement('dialog');
     dialog.className = 'console-search';
@@ -220,7 +220,7 @@
       input.focus();
       render();
     };
-    openSearch.addEventListener('click', showSearch);
+    searchTriggers.forEach(btn => btn.addEventListener('click', showSearch));
     dialog.querySelector('[data-search-close]').addEventListener('click', () => dialog.close());
     dialog.addEventListener('close', () => {
       clearTimeout(debounce);

@@ -4,13 +4,13 @@
 Canonical source of truth:
   console-theme/
     assets/console/          -> all suite sites
-    _includes/console-*.html -> Jekyll sites (root or public/_includes)
-    _data/*                  -> Jekyll sites (root or public/_data)
+    _includes/console-*.html -> Jekyll sites (_includes or public/_includes)
+    _data/*                  -> Jekyll sites (_data or public/_data)
 
 Target repositories:
   - kilavuzlar/              (assets/console, _includes, _data)
   - syscall/                 (public/assets/console, public/_includes, public/_data)
-  - pin-atlas/               (dist/assets/console, updates dist/index.html project links)
+  - pin-atlas/               (public/assets/console, public/_includes, public/_data)
   - zaryob.github.io/        (assets/console, _includes, _data)
 
 Usage:
@@ -21,8 +21,6 @@ Usage:
 """
 
 import argparse
-from html import escape
-import json
 from pathlib import Path
 import shutil
 import subprocess
@@ -65,38 +63,6 @@ def get_latest_commit_message():
         return res.stdout.strip()
     except Exception:
         return 'Update console theme'
-
-
-def sync_pin_atlas_links(index_file: Path, projects_json: Path, check_only: bool) -> bool:
-    """Update project menu links in pin-atlas/dist/index.html."""
-    if not index_file.is_file() or not projects_json.is_file():
-        return True
-
-    content = index_file.read_text(encoding='utf-8')
-    start_tag = '<!-- console-project-links:start -->'
-    end_tag = '<!-- console-project-links:end -->'
-
-    if start_tag not in content or end_tag not in content:
-        return True
-
-    projects = json.loads(projects_json.read_text(encoding='utf-8'))
-    links = []
-    for project in projects:
-        current = ' aria-current="location"' if project.get('key') == 'pin-atlas' else ''
-        path_attr = escape(project['path'], quote=True)
-        title = escape(project['title'])
-        prompt = escape(project['prompt'])
-        links.append(f'          <a href="https://zaryob.github.io{path_attr}"{current}><span>{title}</span><small>{prompt}</small></a>')
-
-    before, rest = content.split(start_tag, 1)
-    _, after = rest.split(end_tag, 1)
-    updated = before + start_tag + '\n' + '\n'.join(links) + '\n          ' + end_tag + after
-
-    if content != updated:
-        if check_only:
-            return False
-        index_file.write_text(updated, encoding='utf-8')
-    return True
 
 
 def run_git(repo_dir: Path, args: list) -> subprocess.CompletedProcess:
@@ -162,17 +128,18 @@ def main():
                 shutil.copyfile(src, dst)
                 updated_files += 1
 
-    # Targets configuration: (repo_dir, target_base_dir, has_includes_and_data)
+    # Targets configuration: (name, repo_dir, target_base_dir)
+    # All 4 suite projects now use Jekyll with standard _includes and _data!
     targets = [
-        ('kilavuzlar', args.guides, args.guides, True),
-        ('syscall', args.syscall, args.syscall / 'public', True),
-        ('zaryob.github.io', args.home, args.home, True),
-        ('pin-atlas', args.pin_atlas, args.pin_atlas / 'dist', False),
+        ('kilavuzlar', args.guides, args.guides),
+        ('syscall', args.syscall, args.syscall / 'public'),
+        ('pin-atlas', args.pin_atlas, args.pin_atlas / 'public'),
+        ('zaryob.github.io', args.home, args.home),
     ]
 
     modified_repos = {}
 
-    for name, repo_path, target_base, has_includes in targets:
+    for name, repo_path, target_base in targets:
         if not repo_path.is_dir():
             print(f"Skipping {name} (directory not found: {repo_path})")
             continue
@@ -193,44 +160,35 @@ def main():
                     updated_files += 1
                     repo_files_affected.append(dst)
 
-        # 2. _includes & _data (Jekyll projects)
-        if has_includes:
-            for inc in INCLUDES:
-                src = REPO_ROOT / '_includes' / inc
-                dst = target_base / '_includes' / inc
-                if src.is_file():
-                    if args.check:
-                        if not dst.is_file() or src.read_bytes() != dst.read_bytes():
-                            differences.append(str(dst))
-                    else:
-                        dst.parent.mkdir(parents=True, exist_ok=True)
-                        if not dst.is_file() or src.read_bytes() != dst.read_bytes():
-                            shutil.copyfile(src, dst)
-                            updated_files += 1
-                            repo_files_affected.append(dst)
+        # 2. _includes
+        for inc in INCLUDES:
+            src = REPO_ROOT / '_includes' / inc
+            dst = target_base / '_includes' / inc
+            if src.is_file():
+                if args.check:
+                    if not dst.is_file() or src.read_bytes() != dst.read_bytes():
+                        differences.append(str(dst))
+                else:
+                    dst.parent.mkdir(parents=True, exist_ok=True)
+                    if not dst.is_file() or src.read_bytes() != dst.read_bytes():
+                        shutil.copyfile(src, dst)
+                        updated_files += 1
+                        repo_files_affected.append(dst)
 
-            for dat in DATA_FILES:
-                src = REPO_ROOT / '_data' / dat
-                dst = target_base / '_data' / dat
-                if src.is_file():
-                    if args.check:
-                        if not dst.is_file() or src.read_bytes() != dst.read_bytes():
-                            differences.append(str(dst))
-                    else:
-                        dst.parent.mkdir(parents=True, exist_ok=True)
-                        if not dst.is_file() or src.read_bytes() != dst.read_bytes():
-                            shutil.copyfile(src, dst)
-                            updated_files += 1
-                            repo_files_affected.append(dst)
-
-        # 3. Pin Atlas project links
-        if name == 'pin-atlas':
-            index_path = target_base / 'index.html'
-            projects_json = REPO_ROOT / '_data' / 'console_projects.json'
-            if not sync_pin_atlas_links(index_path, projects_json, args.check):
-                differences.append(f"{index_path} (project links)")
-            elif not args.check:
-                repo_files_affected.append(index_path)
+        # 3. _data
+        for dat in DATA_FILES:
+            src = REPO_ROOT / '_data' / dat
+            dst = target_base / '_data' / dat
+            if src.is_file():
+                if args.check:
+                    if not dst.is_file() or src.read_bytes() != dst.read_bytes():
+                        differences.append(str(dst))
+                else:
+                    dst.parent.mkdir(parents=True, exist_ok=True)
+                    if not dst.is_file() or src.read_bytes() != dst.read_bytes():
+                        shutil.copyfile(src, dst)
+                        updated_files += 1
+                        repo_files_affected.append(dst)
 
         if repo_files_affected:
             modified_repos[repo_path] = repo_files_affected

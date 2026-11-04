@@ -116,6 +116,7 @@
 
     const openSearch = document.querySelector('[data-console-search]');
     if (!openSearch) return;
+    
     const suite = new URL(openSearch.dataset.suiteRoot || '/', location.href);
     const dialog = document.createElement('dialog');
     dialog.className = 'console-search';
@@ -140,7 +141,7 @@
       if (language) link.lang = language;
       const label = document.createElement('small');
       label.textContent = t(({ 'yazılar/': 'posts/', 'sayfalar/': 'pages/', 'kılavuzlar/': 'guides/', 'kılavuzlar/arşiv/': 'guides/archive/' })[type] || type);
-      link.append(label, document.createTextNode(title));
+      link.append(label, document.createTextNode(' ' + title));
       if (excerpt) {
         const snippet = document.createElement('small');
         snippet.textContent = excerpt;
@@ -161,7 +162,6 @@
         const guides = new URL('kilavuzlar/', suite);
         indexes.set(language, index.mergeIndex(new URL('pagefind/', guides).href, {
           baseUrl: guides.href,
-          language,
         }).then(() => index).catch(error => {
           index.destroy();
           throw error;

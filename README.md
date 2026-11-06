@@ -98,6 +98,17 @@ export the assets for subtree consumers:
 git subtree push --prefix assets/console origin assets
 ```
 
+Verify the complete export tree, including unexpected nested files:
+
+```sh
+git fetch origin assets
+python3 scripts/check_assets_export.py origin/assets
+```
+
+This compares the export with `HEAD:assets/console`. The flat export must not
+contain another `assets/console/` directory. `scripts/sync.py --check` separately
+verifies the copies in all four sites.
+
 ## License
 
 GPL-2.0-or-later. Fonts are licensed under the SIL Open Font License (OFL). SVG icons include Font Awesome Free.

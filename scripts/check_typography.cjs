@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
-/* Run against the four built sites served by scripts/preview_suite.py. */
+/* Run against the five built sites served by scripts/preview_suite.py. */
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 
@@ -16,7 +16,9 @@ const cases = [
   ['syscall summary', '/syscall/?arch=x64'],
   ['syscall arguments', '/syscall/?arch=x64&view=args'],
   ['board library', '/pin-atlas/'],
-  ['board workspace', '/pin-atlas/#board=pico'],
+  ['board workspace', '/pin-atlas/#board=pico-family&profile=pico&pin=1'],
+  ['execmap', '/execmap/'],
+  ['execmap article', '/execmap/rehberler/elf-dosyadan-bellege.html'],
 ];
 
 async function checkPage(context, name, path, width, scale) {
@@ -40,7 +42,10 @@ async function checkPage(context, name, path, width, scale) {
     await page.evaluate(async () => {
       await new Promise(requestAnimationFrame);
       await document.fonts.ready;
-      await Promise.all(document.getAnimations().map(animation => animation.finished.catch(() => {})));
+      // A terminal cursor may blink forever; only finite layout transitions settle.
+      await Promise.all(document.getAnimations()
+        .filter(animation => Number.isFinite(animation.effect?.getComputedTiming().endTime))
+        .map(animation => animation.finished.catch(() => {})));
       await new Promise(requestAnimationFrame);
     });
     const metrics = await page.evaluate(() => {

@@ -12,6 +12,7 @@ Target repositories:
   - syscall/                 (public/assets/console, public/_includes, public/_data)
   - pin-atlas/               (public/assets/console, public/_includes, public/_data)
   - zaryob.github.io/        (assets/console, _includes, _data)
+  - execmap/                 (public/assets/console, public/console-projects.json)
 
 Usage:
   python3 scripts/sync.py              # Sync all files to siblings
@@ -25,6 +26,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+from check_i18n import validate
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 WORKSPACE_ROOT = REPO_ROOT.parent
@@ -99,7 +101,12 @@ def main():
     parser.add_argument('--syscall', type=Path, default=WORKSPACE_ROOT / 'syscall', help='Path to syscall repo')
     parser.add_argument('--pin-atlas', type=Path, default=WORKSPACE_ROOT / 'pin-atlas', help='Path to pin-atlas repo')
     parser.add_argument('--home', type=Path, default=WORKSPACE_ROOT / 'zaryob.github.io', help='Path to zaryob.github.io repo')
+    parser.add_argument('--execmap', type=Path, default=WORKSPACE_ROOT / 'execmap', help='Path to execmap repo')
     args = parser.parse_args()
+    try:
+        validate(REPO_ROOT / 'assets/console/i18n.js')
+    except (ValueError, IndexError) as error:
+        sys.exit(f'Invalid shared vocabulary: {error}')
 
     assets = get_console_theme_assets()
     differences = []
@@ -129,19 +136,20 @@ def main():
                 updated_files += 1
 
     # Targets configuration: (name, repo_dir, target_base_dir)
-    # All 4 suite projects now use Jekyll with standard _includes and _data!
+    # Execmap consumes the same assets and registry through its Node build adapter.
     targets = [
         ('kilavuzlar', args.guides, args.guides),
         ('syscall', args.syscall, args.syscall / 'public'),
         ('pin-atlas', args.pin_atlas, args.pin_atlas / 'public'),
         ('zaryob.github.io', args.home, args.home),
+        ('execmap', args.execmap, args.execmap / 'public'),
     ]
 
     modified_repos = {}
 
     for name, repo_path, target_base in targets:
         if not repo_path.is_dir():
-            print(f"Skipping {name} (directory not found: {repo_path})")
+            differences.append(f"{name}: directory not found: {repo_path}")
             continue
 
         repo_files_affected = []
@@ -161,7 +169,7 @@ def main():
                     repo_files_affected.append(dst)
 
         # 2. _includes
-        for inc in INCLUDES:
+        for inc in ([] if name == 'execmap' else INCLUDES):
             src = REPO_ROOT / '_includes' / inc
             dst = target_base / '_includes' / inc
             if src.is_file():
@@ -176,9 +184,9 @@ def main():
                         repo_files_affected.append(dst)
 
         # 3. _data
-        for dat in DATA_FILES:
+        for dat in (['console_projects.json'] if name == 'execmap' else DATA_FILES):
             src = REPO_ROOT / '_data' / dat
-            dst = target_base / '_data' / dat
+            dst = target_base / ('console-projects.json' if name == 'execmap' else f'_data/{dat}')
             if src.is_file():
                 if args.check:
                     if not dst.is_file() or src.read_bytes() != dst.read_bytes():
@@ -200,10 +208,13 @@ def main():
                 print(f"  - {diff}")
             sys.exit(1)
         else:
-            print("✓ All repositories are perfectly in sync with console-theme.")
+            print("✓ All 5 configured suite repositories are in sync with console-theme.")
             sys.exit(0)
 
-    print(f"✓ Synchronized console-theme: {updated_files} file(s) updated across repos.")
+    if differences:
+        print("Missing configured repositories:\n" + "\n".join(differences))
+        sys.exit(1)
+    print(f"✓ Synchronized console-theme: {updated_files} file(s) updated across 5 configured repositories.")
 
     # Git commit handling if requested
     commit_msg = None

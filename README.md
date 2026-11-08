@@ -120,14 +120,29 @@ GPL-2.0-or-later. Fonts are licensed under the SIL Open Font License (OFL). SVG 
 
 Run `python3 scripts/sync.py`, then `python3 scripts/sync.py --check`.
 All five configured targets must exist for the check to pass. The four Jekyll
-sites receive the assets, includes and registry. Execmap receives the assets and
-`public/console-projects.json`; its Node build renders the same five projects
-without Jekyll includes. It also emits `search.json` with title, description,
-full text, URL, type and content language. Shared search queries this adapter
-alongside Pagefind and when Pagefind is unavailable. Execmap retains its local
-search, and explicitly identifies its content and local search as Turkish.
+sites receive the assets, includes and registry. All files under
+`assets/console/` are byte-identical in every target, including `theme.js` and
+`site.svg`; there are no per-site asset substitutions or parity exemptions.
+The SVG attribution points to the bundled sibling `ICONS-LICENSE.txt`.
+`theme.js` uses English source labels (including interpolation) when no
+vocabulary adapter is loaded; bilingual consumers translate those labels
+through their adapter.
 
-Load `language.js` before the vocabulary adapter (`i18n.js`, or Pin Atlas's own
+Packaging differences are explicit in `scripts/sync.py`: the Jekyll sites use
+`assets/console/` or `public/assets/console/`, `_includes/` and `_data/`.
+Execmap uses `public/assets/console/` and receives the byte-identical registry
+as `public/console-projects.json`, without Jekyll includes or topic data. Its
+Node build owns the rendered header, local search and English language policy;
+these generated templates are not copies of the Jekyll includes.
+It emits `search.json` with title, description, full text, URL, type and content
+language. Shared search queries this adapter alongside Pagefind and when
+Pagefind is unavailable, preserving each record's `lang` (currently `en`).
+Execmap's content and controls remain English under saved Turkish preferences,
+Turkish browser locales and `?lang=tr`. It does not load `language.js` or
+`i18n.js` or render a language selector. Those files are distributed for parity,
+not automatically enabled. A theme sync must not change this product policy.
+
+For bilingual consumers, load `language.js` before the vocabulary adapter (`i18n.js`, or Pin Atlas's own
 `/i18n.js`) and before `theme.js`. Language precedence is a supported `?lang`,
 then a saved preference, then the primary browser language (TR for Turkish,
 EN otherwise). Invalid saved values are ignored. Both adapters subscribe to
@@ -149,7 +164,11 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 
 `check_i18n.py` rejects duplicate keys and mismatched placeholders; sync runs it before copying.
 `npm run check` runs vocabulary and five-target parity checks; `npm test` runs
-the isolated sync and negative vocabulary fixtures. The browser
+isolated sync/repair checks, asset and registry drift rejection in all five
+targets, missing-target rejection and negative vocabulary fixtures. Run
+`npm run test:console` for the shared English fallback, Turkish adapter and
+Execmap search-language browser regressions (requires installed Chromium).
+The typography browser
 regression matrix now includes execmap (15 page types × 5 widths × 2 text sizes).
 No site is published by these commands.
 

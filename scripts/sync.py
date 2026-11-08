@@ -136,7 +136,8 @@ def main():
                 updated_files += 1
 
     # Targets configuration: (name, repo_dir, target_base_dir)
-    # Execmap consumes the same assets and registry through its Node build adapter.
+    # Every asset is byte-identical, including English fallbacks and sibling license paths.
+    # Execmap's Node adapter owns rendered markup/language policy, not asset forks.
     targets = [
         ('kilavuzlar', args.guides, args.guides),
         ('syscall', args.syscall, args.syscall / 'public'),
@@ -208,7 +209,7 @@ def main():
                 print(f"  - {diff}")
             sys.exit(1)
         else:
-            print("✓ All 5 configured suite repositories are in sync with console-theme.")
+            print("✓ All 5 configured suite repositories match the shared asset and adapter packaging contract.")
             sys.exit(0)
 
     if differences:

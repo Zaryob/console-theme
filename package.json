@@ -4,7 +4,8 @@
   "scripts": {
     "check": "python3 scripts/check_i18n.py && python3 scripts/sync.py --check",
     "test": "python3 -m unittest discover -s tests -p 'test_*.py'",
-    "test:typography": "node scripts/check_typography.cjs"
+    "test:typography": "node scripts/check_typography.cjs",
+    "test:console": "node --test tests/theme.test.cjs"
   },
   "devDependencies": {
     "playwright": "1.65.0"

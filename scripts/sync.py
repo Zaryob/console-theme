@@ -60,7 +60,7 @@ ALLOWED_EXTRAS = {
     'pin-atlas': set(),
     'zaryob.github.io': {'bundle.scss', 'site.css'},
     'execmap': {'COPYING'},
-    'wire': set(),
+    'wire': {'COPYING'},
 }
 IGNORED_NAMES = {'.DS_Store'}
 COMMIT_BRANCH = 'main'

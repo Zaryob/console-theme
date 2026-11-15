@@ -77,6 +77,7 @@ class SuiteContracts(unittest.TestCase):
             allowed = [
                 base / 'home/assets/console/bundle.scss', base / 'home/assets/console/site.css',
                 base / 'syscall/public/assets/console/syscall.css', base / 'execmap/public/assets/console/COPYING',
+                base / 'wire/public/assets/console/COPYING',
             ]
             for path in allowed:
                 path.write_text('site-owned')

@@ -126,7 +126,7 @@ dalındayken. Hiçbir şey push edilmez.
 `--check`, bir hedefin `assets/console/` dizinindeki asıl kaynakta bulunmayan dosyaları
 da reddeder. Oraya ait olan siteye özgü dosyalar `scripts/sync.py` içindeki
 `ALLOWED_EXTRAS` listesinde hedef başına tanımlıdır (şu an ana sitede `bundle.scss` ve
-`site.css`, Syscall'da `syscall.css`, Execmap'te `COPYING`); kopyalama kipi diğer fazla
+`site.css`, Syscall'da `syscall.css`, Execmap ve Wire'da `COPYING`); kopyalama kipi diğer fazla
 dosyaları bildirir ve hiçbirini silmez.
 
 Temayı yeni bir siteye eklemek için hedefi `scripts/sync.py` dosyasına ekleyip betiği

@@ -128,7 +128,7 @@ sibling is on `main`. Nothing is pushed.
 `--check` also rejects files under a target's `assets/console/` that are not
 canonical. Site-owned files that belong there are listed per target in
 `ALLOWED_EXTRAS` in `scripts/sync.py` (currently `bundle.scss` and `site.css`
-in the home site, `syscall.css` in Syscall, `COPYING` in Execmap); copy mode
+in the home site, `syscall.css` in Syscall, `COPYING` in Execmap and Wire); copy mode
 reports other extras and never deletes them.
 
 To add the theme to a new site, add the target to `scripts/sync.py` and run it.

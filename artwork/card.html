@@ -1,0 +1,58 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-2.0-or-later -->
+<html lang="en"><head><meta charset="utf-8"><title>Zaryob social card</title>
+<style>
+@font-face { font-family: "Plex Mono"; font-weight: 400; src: url("../assets/console/fonts/IBMPlexMono-Regular.woff2") format("woff2"); }
+@font-face { font-family: "Plex Mono"; font-weight: 500; src: url("../assets/console/fonts/IBMPlexMono-Medium.woff2") format("woff2"); }
+@font-face { font-family: "Plex Sans"; font-weight: 400; src: url("../assets/console/fonts/IBMPlexSans-Regular.woff2") format("woff2"); }
+:root { --paper:#171a1f; --surface:#1f242b; --ink:#dce0e6; --muted:#a5adb8; --line:#363e49; --accent:#e2b56f; --green:#8fbf8f; --red:#d98a7a; --blue:#8fb3d9; }
+* { box-sizing: border-box; margin: 0; }
+body { width: 1200px; height: 630px; overflow: hidden; background: var(--paper); color: var(--ink); font-family: "Plex Mono", monospace; }
+.card { position: relative; width: 1200px; height: 630px; padding: 56px 64px; display: grid; grid-template-columns: 1fr 470px; grid-template-rows: auto 1fr auto; gap: 0 56px;
+  background: linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 100% 42px, var(--paper); background-blend-mode: normal; }
+.card::before { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, var(--paper) 0%, rgba(23,26,31,.94) 55%, rgba(23,26,31,.78) 100%); }
+.card::after { content: ""; position: absolute; inset: 20px; border: 1px solid var(--line); pointer-events: none; }
+.card > * { position: relative; }
+.prompt { grid-column: 1 / -1; font-size: 28px; font-weight: 500; color: var(--ink); letter-spacing: .01em; }
+.prompt b { color: var(--accent); font-weight: 500; } .prompt i { color: var(--muted); font-style: normal; }
+.prompt .cursor { display: inline-block; width: 15px; height: 30px; margin-left: 12px; background: var(--accent); vertical-align: -5px; }
+.copy { align-self: center; }
+h1 { font-size: 64px; line-height: 1.12; font-weight: 500; letter-spacing: -.02em; }
+h1.long { font-size: 54px; }
+.sub { margin-top: 22px; max-width: 560px; font: 400 27px/1.45 "Plex Sans", sans-serif; color: var(--muted); }
+.panel { align-self: center; border: 1px solid var(--line); background: var(--surface); border-radius: 3px; overflow: hidden; }
+.panel header { display: flex; justify-content: space-between; padding: 10px 18px; border-bottom: 1px solid var(--line); font-size: 16px; color: var(--muted); }
+.panel pre { padding: 18px 18px 20px; font: 400 19px/1.62 "Plex Mono", monospace; color: var(--ink); white-space: pre; }
+.panel pre b { color: var(--accent); font-weight: 500; } .panel pre i { color: var(--muted); font-style: normal; }
+.panel pre u { text-decoration: none; color: var(--green); } .panel pre s { text-decoration: none; color: var(--red); } .panel pre em { font-style: normal; color: var(--blue); }
+.foot { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: end; font-size: 21px; color: var(--muted); }
+.foot b { color: var(--accent); font-weight: 400; }
+.bars { display: grid; gap: 7px; padding: 0 18px 20px; }
+.bars div { height: 14px; border-radius: 2px; background: var(--accent); opacity: .9; }
+</style></head><body><div class="card" id="card"></div>
+<script>
+const cards = {
+  'home-tr': { path: '~', title: 'Süleyman Poyraz', sub: 'Sistem yazılımı, C++ ve Linux üzerine yazılar, kılavuzlar ve araçlar.', url: 'zaryob.github.io', head: ['ls -F', '~'],
+    body: `<i>$</i> ls -F\n<b>yazilar/</b>      <b>kilavuzlar/</b>\n<b>syscall/</b>      <b>pin-atlas/</b>\n<b>execmap/</b>      about.txt\n\n<i>$</i> cat about.txt\nyazılım mühendisi\n<i># kod, sistemler, öğrenme notları</i>` },
+  'home-en': { path: '~', title: 'Süleyman Poyraz', sub: 'Writing, guides and tools on system software, C++ and Linux.', url: 'zaryob.github.io/en', head: ['ls -F', '~'],
+    body: `<i>$</i> ls -F\n<b>posts/</b>        <b>guides/</b>\n<b>syscall/</b>      <b>pin-atlas/</b>\n<b>execmap/</b>      about.txt\n\n<i>$</i> cat about.txt\nsoftware engineer\n<i># code, systems, learning notes</i>` },
+  'kilavuzlar-tr': { path: '~/kilavuzlar', title: 'Kılavuzlar', sub: 'C++, Docker, Linux ve sanallaştırma için sınanmış, adım adım uygulama notları.', url: 'zaryob.github.io/kilavuzlar', head: ['tree -L 1', '~/kilavuzlar'],
+    body: `<i>$</i> tree -L 1\n.\n├── <b>cpp/</b>\n├── <b>docker/</b>\n├── <b>emacs/</b>\n├── <b>linux/</b>\n├── <b>sanallastirma/</b>\n└── <b>vim/</b>` },
+  'kilavuzlar-en': { path: '~/kilavuzlar', title: 'Guides', sub: 'Tested, step-by-step notes on C++, Docker, Linux and virtualisation.', url: 'zaryob.github.io/kilavuzlar/en', head: ['tree -L 1', '~/kilavuzlar'],
+    body: `<i>$</i> tree -L 1\n.\n├── <b>cpp/</b>\n├── <b>docker/</b>\n├── <b>emacs/</b>\n├── <b>linux/</b>\n├── <b>sanallastirma/</b>\n└── <b>vim/</b>` },
+  'syscall': { path: '~/syscall', title: 'Linux System Call Reference', long: true, sub: 'Numbers, C signatures and calling conventions for every architecture, from kernel sources.', url: 'zaryob.github.io/syscall', head: ['x86-64', 'syscall table'],
+    body: `<i> nr  name      rdi   rsi   rdx</i>\n  <b>0</b>  read      fd    buf   count\n  <b>1</b>  write     fd    buf   count\n  <b>9</b>  mmap      addr  len   prot\n <b>59</b>  execve    path  argv  envp\n<b>257</b>  openat    dfd   path  flags\n\n<i>$</i> mov eax, 257 <i>; syscall</i>` },
+  'pin-atlas': { path: '~/pin-atlas', title: 'Pin Atlas', sub: 'Source-verified pinouts and a wiring planner for boards and chips.', url: 'zaryob.github.io/pin-atlas', head: ['Raspberry Pi', '40-pin header'],
+    body: `   <s>3V3</s>  <i>1</i> ● ● <i>2</i>   <s>5V</s>\n <u>GPIO2</u>  <i>3</i> ● ● <i>4</i>   <s>5V</s>     <em>SDA</em>\n <u>GPIO3</u>  <i>5</i> ● ● <i>6</i>   GND    <em>SCL</em>\n <u>GPIO4</u>  <i>7</i> ● ● <i>8</i>   <u>GPIO14</u> <em>TXD</em>\n   GND  <i>9</i> ● ● <i>10</i>  <u>GPIO15</u> <em>RXD</em>\n<u>GPIO17</u> <i>11</i> ● ● <i>12</i>  <u>GPIO18</u> <em>PWM</em>\n<u>GPIO27</u> <i>13</i> ● ● <i>14</i>  GND` },
+  'execmap': { path: '~/execmap', title: 'execmap', sub: 'Follow Linux programs from file to memory: ELF, loading and runtime, with hands-on labs.', url: 'zaryob.github.io/execmap', head: ['readelf -lW', './sample'],
+    body: `<i>$</i> readelf -lW ./sample\n<i>Type     Offset   Flg</i>\n<b>PHDR</b>     0x000040 R\n<b>INTERP</b>   0x000318 R\n<b>LOAD</b>     0x000000 R\n<b>LOAD</b>     0x001000 R E\n<b>LOAD</b>     0x002000 R\n<b>LOAD</b>     0x002db8 RW\n<b>DYNAMIC</b>  0x002dc8 RW` },
+};
+const key = new URLSearchParams(location.search).get('card') || 'home-tr';
+const c = cards[key];
+document.getElementById('card').innerHTML =
+  `<p class="prompt"><b>zaryob</b><i>:</i>${c.path} <b>$</b><span class="cursor"></span></p>
+   <div class="copy"><h1${c.long ? ' class="long"' : ''}>${c.title}</h1><p class="sub">${c.sub}</p></div>
+   <div class="panel"><header><span>${c.head[0]}</span><span>${c.head[1]}</span></header><pre>${c.body}</pre></div>
+   <p class="foot"><span><b>${c.url}</b></span><span>${key.startsWith('home') ? '' : 'Süleyman Poyraz'}</span></p>`;
+window.cardKeys = Object.keys(cards);
+</script></body></html>

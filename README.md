@@ -38,11 +38,13 @@ console-theme/
 │   ├── console-icon.html     # SVG sprite helper
 │   ├── console-content-language.html # Translation notification strip
 │   ├── console-alternates.html       # SEO hreflang generator (tr, en, x-default)
-│   └── console/              # Mirror of the four includes, refreshed by sync.py
+│   ├── console-suite.html            # Footer strip linking the five sites, author and feed
+│   └── console/              # Mirror of the includes, refreshed by sync.py
 ├── _data/                    # Registry data
 │   ├── console_projects.json # The 5 suite projects registry
 │   ├── writing_topics.yml    # Topic taxonomy
 │   └── console/              # Mirror of the two data files, refreshed by sync.py
+├── artwork/                  # Social card and home hero templates; `node artwork/make.cjs <outDir>` renders them
 ├── scripts/
 │   ├── sync.py               # Copies the files above to the sibling repositories; --check verifies them
 │   ├── check_i18n.py         # Vocabulary validation (duplicate keys, placeholders)

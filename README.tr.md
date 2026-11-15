@@ -38,11 +38,13 @@ console-theme/
 │   ├── console-icon.html     # SVG sprite yardımcısı
 │   ├── console-content-language.html # Çeviri bildirim şeridi
 │   ├── console-alternates.html       # SEO hreflang üreticisi (tr, en, x-default)
+│   ├── console-suite.html            # Beş siteyi, yazarı ve feed'i bağlayan alt bilgi şeridi
 │   └── console/              # Dört include'un sync.py ile yenilenen kopyası
 ├── _data/                    # Kayıt verileri
 │   ├── console_projects.json # Beş projenin kaydı
 │   ├── writing_topics.yml    # Konu sınıflandırması
 │   └── console/              # İki veri dosyasının sync.py ile yenilenen kopyası
+├── artwork/                  # Paylaşım kartı ve ana sayfa görseli şablonları; `node artwork/make.cjs <klasör>` ile üretilir
 ├── scripts/
 │   ├── sync.py               # Yukarıdaki dosyaları kardeş depolara kopyalar; --check doğrular
 │   ├── check_i18n.py         # Sözlük doğrulaması (yinelenen anahtarlar, yer tutucular)

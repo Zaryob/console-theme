@@ -1,0 +1,71 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-2.0-or-later -->
+<!-- Home hero artwork: the word ZARYOB lit inside a hex dump. Rendered to an image by make.cjs. -->
+<html lang="en"><head><meta charset="utf-8"><title>Zaryob hero</title>
+<style>
+@font-face { font-family: "Plex Mono"; font-weight: 400; src: url("../assets/console/fonts/IBMPlexMono-Regular.woff2") format("woff2"); }
+@font-face { font-family: "Plex Mono"; font-weight: 500; src: url("../assets/console/fonts/IBMPlexMono-Medium.woff2") format("woff2"); }
+html, body { margin: 0; background: #12161c; }
+canvas { display: block; }
+</style></head><body><canvas id="c"></canvas>
+<script>
+const GLYPHS = {
+  Z: ['11111','00001','00010','00100','01000','10000','11111'],
+  A: ['01110','10001','10001','11111','10001','10001','10001'],
+  R: ['11110','10001','10001','11110','10100','10010','10001'],
+  Y: ['10001','10001','01010','00100','00100','00100','00100'],
+  O: ['01110','10001','10001','10001','10001','10001','01110'],
+  B: ['11110','10001','10001','11110','10001','10001','11110'],
+};
+const MODES = {
+  // wide: word on the right, text sits on the calm left half. stacked: two lines, dimmed, for narrow screens. plain: dump only.
+  wide:    { W: 2400, H: 700,  lines: ['ZARYOB'],     align: 'right',  glow: .20, on: .82 },
+  stacked: { W: 1200, H: 900,  lines: ['ZAR', 'YOB'], align: 'center', glow: .10, on: .46 },
+  plain:   { W: 2400, H: 700,  lines: [],             align: 'center', glow: 0,   on: 0 },
+};
+const MODE = MODES[new URLSearchParams(location.search).get('mode')] || MODES.wide;
+const { W, H } = MODE, CW = 34, RH = 34, COLS = Math.ceil(W / CW), ROWS = Math.ceil(H / RH);
+document.getElementById('c').width = W; document.getElementById('c').height = H;
+const lineCols = n => n * 6 - 1, blockRows = MODE.lines.length * 7 + (MODE.lines.length - 1) * 2;
+const r0 = Math.floor((ROWS - blockRows) / 2);
+function lit(col, row) {
+  for (let i = 0; i < MODE.lines.length; i++) {
+    const word = MODE.lines[i], cols = lineCols(word.length);
+    const c0 = MODE.align === 'right' ? COLS - cols - 4 : Math.floor((COLS - cols) / 2);
+    const x = col - c0, y = row - r0 - i * 9;
+    if (x < 0 || y < 0 || y >= 7 || x >= cols || x % 6 === 5) continue;
+    if (GLYPHS[word[Math.floor(x / 6)]][y][x % 6] === '1') return true;
+  }
+  return false;
+}
+let seed = 0x5a41; // "ZA"
+const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
+(async () => {
+  await document.fonts.load('500 21px "Plex Mono"'); await document.fonts.load('400 21px "Plex Mono"');
+  const ctx = document.getElementById('c').getContext('2d');
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, '#12161c'); bg.addColorStop(.5, '#171c24'); bg.addColorStop(1, '#11151a');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+  // glow pass under the lit cells
+  ctx.save(); ctx.filter = 'blur(26px)'; ctx.fillStyle = `rgba(226,181,111,${MODE.glow})`;
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (lit(c, r)) ctx.fillRect(c * CW - 6, r * RH - 6, CW + 12, RH + 12);
+  ctx.restore();
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const byte = Math.floor(rnd() * 256).toString(16).padStart(2, '0'), on = lit(c, r), x = c * CW + CW / 2, y = r * RH + RH / 2;
+    if (on) { ctx.fillStyle = `rgba(226,181,111,${MODE.on * .3})`; ctx.fillRect(c * CW + 1, r * RH + 1, CW - 2, RH - 2); }
+    if (on) { ctx.font = '500 20px "Plex Mono"'; ctx.fillStyle = `rgba(237,197,139,${MODE.on + rnd() * .18})`; }
+    else { ctx.font = '400 20px "Plex Mono"'; const zero = byte === '00' || rnd() < .12; ctx.fillStyle = zero ? 'rgba(120,132,148,.14)' : `rgba(150,162,178,${.20 + rnd() * .14})`; }
+    ctx.fillText(on ? byte : (rnd() < .1 ? '00' : byte), x, y);
+  }
+  // soft edge vignette so the dump fades into the page edges
+  const v = ctx.createRadialGradient(W / 2, H / 2, H * .5, W / 2, H / 2, Math.max(W, H) * .72);
+  v.addColorStop(0, 'rgba(14,17,22,0)'); v.addColorStop(1, 'rgba(14,17,22,.78)');
+  ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+  if (MODE.align === 'right') { // keep the left half quiet for the headline
+    const q = ctx.createLinearGradient(0, 0, W * .5, 0); q.addColorStop(0, 'rgba(18,22,28,.86)'); q.addColorStop(1, 'rgba(18,22,28,0)');
+    ctx.fillStyle = q; ctx.fillRect(0, 0, W * .5, H);
+  }
+  document.body.dataset.ready = '1';
+})();
+</script></body></html>

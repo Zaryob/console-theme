@@ -42,6 +42,7 @@ INCLUDES = [
     'console-icon.html',
     'console-content-language.html',
     'console-alternates.html',
+    'console-suite.html',
 ]
 
 DATA_FILES = [

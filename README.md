@@ -227,3 +227,8 @@ origin-root favicon fallback. Guides root titles omit a repeated site name.
 Shared search queries both Node adapters (Execmap and Wire) alongside Pagefind
 and in fallback mode. Each result retains its content language; an unavailable
 adapter reports partial results without hiding the other sites.
+
+Use `<pre data-console-declaration><code>…</code></pre>` for short signatures.
+The copy action sits beside a separately scrollable code area. Dynamic apps can
+use `.console-declaration` with direct code and button children and own the
+clipboard behaviour and live status. Do not nest another code wrapper inside it.

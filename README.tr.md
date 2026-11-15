@@ -223,3 +223,8 @@ başlıklarında site adı yinelenmez.
 Ortak arama, Pagefind yanında ve yedek kipte hem Execmap hem Wire dizinini
 sorgular. Sonuçlar içerik dilini korur; bir dizin yüklenemezse diğer sitelerin
 sonuçları gösterilir ve eksik dizin bilgisi bildirilir.
+
+Kısa bildirimler için `<pre data-console-declaration><code>…</code></pre>` kullanın.
+Kopyalama düğmesi, ayrı kaydırılan kod alanının yanında kalır. Dinamik uygulamalar
+`.console-declaration` içinde doğrudan code ve button kullanıp pano davranışını
+ve canlı durum bildirimini kendileri yönetebilir. İçine ikinci kod kabuğu eklemeyin.

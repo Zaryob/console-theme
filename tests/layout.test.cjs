@@ -92,3 +92,22 @@ for(const width of [320,390]) {
     });
   }
 }
+
+test('a compact declaration scrolls without covering the code or its copy action',async t=>{
+  const declaration='long_result_type example_call(const char *first_argument, unsigned long second_argument);';
+  for(const textScale of [1,2]) {
+    const page=await fixture(t,{width:320,textScale,script:true,body:`<main style="padding:16px"><pre data-console-declaration><code>${declaration}</code></pre></main>`});
+    const geometry=await page.evaluate(()=>{
+      const pre=document.querySelector('pre'),button=document.querySelector('.console-copy');
+      return {right:pre.getBoundingClientRect().right,left:button.getBoundingClientRect().left,scrolls:pre.scrollWidth>pre.clientWidth,overflow:document.documentElement.scrollWidth-innerWidth,height:button.getBoundingClientRect().height};
+    });
+    assert.ok(geometry.right<=geometry.left);
+    assert.ok(geometry.scrolls);
+    assert.equal(geometry.overflow,0);
+    assert.ok(geometry.height>=44);
+    await page.evaluate(()=>{Object.defineProperty(navigator,'clipboard',{value:{writeText:async text=>{window.copiedDeclaration=text;}}});});
+    await page.locator('.console-copy').click();
+    assert.equal(await page.evaluate(()=>window.copiedDeclaration),declaration);
+    await page.locator('[role=status]').filter({hasText:'Copied'}).waitFor();
+  }
+});

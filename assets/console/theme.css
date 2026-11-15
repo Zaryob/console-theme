@@ -170,7 +170,7 @@ body.console-site, body.pin-atlas-site { margin: 0; background: var(--paper); co
 .console-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 .console-site .skip-link { position: fixed; top: -100px; left: 16px; z-index: 50; background: var(--surface); color: var(--ink); padding: 8px 14px; transform: none; }
 .console-site .skip-link:focus { top: 10px; }
-/* Landing hero shared by the five sites: prompt line, title and lead on the left, a small terminal panel on the right. */
+/* Landing hero shared by the suite: prompt line, title and lead on the left, a small terminal panel on the right. */
 .console-hero { --hero-green: #37643b; --hero-red: #a02d35; --hero-blue: #2f5f8f; border-bottom: 1px solid var(--line); }
 :root[data-theme="dark"] .console-hero { --hero-green: #a7ca9b; --hero-red: #f2a0a3; --hero-blue: #9cc0e4; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme]) .console-hero { --hero-green: #a7ca9b; --hero-red: #f2a0a3; --hero-blue: #9cc0e4; } }
@@ -218,7 +218,7 @@ body.console-site, body.pin-atlas-site { margin: 0; background: var(--paper); co
   .console-suite__list a { min-width: 0; }
 }
 @media print { .console-suite { display: none; } }
-.console-footer { max-width: var(--shell-width); margin: 0 auto; padding: 20px 36px; border-top: 1px solid var(--line); color: var(--muted); font-size: var(--text-xs); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; }
+.console-footer { max-width: var(--shell-width); margin: 0 auto; padding: 20px var(--gutter); border-top: 1px solid var(--line); color: var(--muted); font-size: var(--text-xs); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; }
 .console-hints { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .console-hints kbd:not(:first-child) { margin-left: 12px; }
 .console-search { width: min(720px, calc(100% - 32px)); max-height: calc(100dvh - 48px); margin: 8vh auto auto; padding: 24px; border: 1px solid var(--line); border-radius: 2px; background: var(--paper); color: var(--ink); }
@@ -315,3 +315,9 @@ mark, .console-highlight { background: var(--selection); color: var(--ink); outl
 .console-language-note { margin: 0 0 24px; padding: 12px 16px; border-left: 2px solid var(--accent); background: var(--surface); color: var(--muted); font-size: var(--text-xs); }
 .console-language-note[hidden] { display: none; }
 .console-language-note a { margin-inline-start: 12px; white-space: nowrap; }
+
+/* A short declaration keeps its copy action beside, rather than over, the code.
+   Applications with dynamic markup can own the button behaviour in this shell. */
+.console-declaration { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; min-width: 0; margin: .75rem 0; padding: 8px 12px; border: 1px solid var(--line); background: var(--surface); }
+.console-declaration > :is(pre, code) { min-width: 0; margin: 0; padding: 0; border: 0; background: transparent; overflow-x: auto; white-space: pre; font: 400 var(--text-sm)/1.6 var(--font-mono); }
+.console-declaration > button { position: static; min-height: 44px !important; max-width: 9rem; padding: 6px 10px !important; font-size: var(--text-xs) !important; overflow-wrap: anywhere; }

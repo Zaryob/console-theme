@@ -123,6 +123,7 @@
       const pre = code.parentElement;
       const wrapper = document.createElement('div');
       wrapper.className = 'console-code';
+      if (pre.hasAttribute('data-console-declaration')) wrapper.classList.add('console-declaration');
       pre.before(wrapper);
       wrapper.append(pre);
       const button = document.createElement('button');

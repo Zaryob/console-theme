@@ -13,7 +13,7 @@ class SuiteContracts(unittest.TestCase):
     def test_sync_checks_all_targets_and_adapter_packaging(self):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)
-            targets = ['guides', 'home', 'syscall', 'pin-atlas', 'execmap']
+            targets = ['guides', 'home', 'syscall', 'pin-atlas', 'execmap', 'wire']
             for target in targets:
                 (base / target).mkdir()
             command = [sys.executable, str(ROOT / 'scripts/sync.py')]
@@ -27,11 +27,13 @@ class SuiteContracts(unittest.TestCase):
             self.assertEqual(run('--check').returncode, 0)
             self.assertFalse((base / 'execmap/public/_includes').exists())
             self.assertFalse((base / 'execmap/public/_data').exists())
+            self.assertFalse((base / 'wire/public/_includes').exists())
+            self.assertFalse((base / 'wire/public/_data').exists())
             for target in targets:
-                public = base / target / ('public' if target in ['syscall', 'pin-atlas', 'execmap'] else '')
-                registry = 'console-projects.json' if target == 'execmap' else '_data/console_projects.json'
+                public = base / target / ('public' if target in ['syscall', 'pin-atlas', 'execmap', 'wire'] else '')
+                registry = 'console-projects.json' if target in {'execmap', 'wire'} else '_data/console_projects.json'
                 self.assertEqual((public / registry).read_bytes(), (ROOT / '_data/console_projects.json').read_bytes())
-                if target != 'execmap':
+                if target not in {'execmap', 'wire'}:
                     self.assertTrue((public / '_includes/console-header.html').is_file())
                     self.assertTrue((public / '_data/writing_topics.yml').is_file())
                 # These two former forks must never become parity exemptions.
@@ -52,7 +54,7 @@ class SuiteContracts(unittest.TestCase):
             self.assertEqual(run('--check').returncode, 1)
 
     def targets(self, base):
-        names = ['guides', 'home', 'syscall', 'pin-atlas', 'execmap']
+        names = ['guides', 'home', 'syscall', 'pin-atlas', 'execmap', 'wire']
         command = [sys.executable, str(ROOT / 'scripts/sync.py')]
         for name in names:
             (base / name).mkdir()
@@ -82,6 +84,7 @@ class SuiteContracts(unittest.TestCase):
             for stale in [
                 base / 'guides/assets/console/site.css', base / 'pin-atlas/public/assets/console/old-theme.js',
                 base / 'execmap/public/assets/console/fonts/Removed.woff2',
+                base / 'wire/public/assets/console/old-theme.js',
             ]:
                 with self.subTest(stale=stale):
                     stale.write_text('stale')

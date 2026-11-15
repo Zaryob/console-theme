@@ -8,6 +8,7 @@ The shared terminal-styled console interface for the Zaryob suite:
 * **[Syscall Reference](https://zaryob.github.io/syscall/)** (Linux System Call Reference)
 * **[Execmap](https://zaryob.github.io/execmap/)** (ELF Analysis & Reverse Engineering)
 * **[Pin Atlas](https://zaryob.github.io/pin-atlas/)** (Interactive Development Board & Chip Pinout Guide)
+* **[Wire](https://zaryob.github.io/wire/)** (RFC-backed network protocol reference)
 
 ## Overview
 
@@ -23,7 +24,7 @@ The console theme unifies all sites under an amber/VT100 retro terminal aestheti
 
 ```text
 console-theme/
-├── assets/console/           # Copied byte-for-byte to all five sites
+├── assets/console/           # Copied byte-for-byte to all six sites
 │   ├── theme.css             # Main console layout and color variables
 │   ├── theme.js              # Theme switcher, search dialog, code copy buttons, ?highlight=
 │   ├── language.js           # Shared preference, URL and storage state
@@ -38,11 +39,11 @@ console-theme/
 │   ├── console-icon.html     # SVG sprite helper
 │   ├── console-content-language.html # Translation notification strip
 │   ├── console-alternates.html       # SEO hreflang generator (tr, en, x-default)
-│   ├── console-suite.html            # Footer strip linking the five sites, author and feed
+│   ├── console-suite.html            # Footer strip linking the six sites, author and feed
 │   ├── console-analytics.html        # Umami and Google Analytics tags shared by the Jekyll sites
 │   └── console/              # Mirror of the includes, refreshed by sync.py
 ├── _data/                    # Registry data
-│   ├── console_projects.json # The 5 suite projects registry
+│   ├── console_projects.json # The 6 suite projects registry
 │   ├── writing_topics.yml    # Topic taxonomy
 │   └── console/              # Mirror of the two data files, refreshed by sync.py
 ├── artwork/                  # Social card and home hero templates; `node artwork/make.cjs <outDir>` renders them
@@ -60,7 +61,7 @@ console-theme/
 
 ## Text and layout scale
 
-`assets/console/theme.css` is the canonical source for typography in all five
+`assets/console/theme.css` is the canonical source for typography in all six
 sites. App styles should use its variables instead of introducing pixel sizes:
 
 * `--text-base`: `1rem` for body text and form fields.
@@ -92,7 +93,7 @@ accessible description and in the project menu. Keep `.console-identity` free
 of clipping so the dropdown can extend beyond the abbreviated path.
 
 Install the pinned browser tooling with `npm ci` (and `npx playwright install chromium`
-if no browser is installed). After building all five sites, run the home repository's
+if no browser is installed). After building all six sites, run the home repository's
 `python3 scripts/preview_suite.py --port 4180`. With Playwright installed and
 available to Node, run:
 
@@ -111,7 +112,7 @@ inside their panels. Set `ZARYOB_PREVIEW_URL` for another preview address, or
 `scripts/sync.py` is the only update mechanism. Make shared changes in this
 repository on `main`, then copy them into the sibling checkouts (expected next
 to this one: `../zaryob.github.io`, `../kilavuzlar`, `../syscall`,
-`../pin-atlas`, `../execmap`; each path can be overridden, see `--help`):
+`../pin-atlas`, `../execmap`, `../wire`; each path can be overridden, see `--help`):
 
 ```sh
 python3 scripts/sync.py            # copy assets, includes and registry
@@ -141,7 +142,7 @@ GPL-2.0-or-later (see `LICENSE`). Fonts are licensed under the SIL Open Font Lic
 ## Integration and language contract
 
 Run `python3 scripts/sync.py`, then `python3 scripts/sync.py --check`.
-All five configured targets must exist for the check to pass. The four Jekyll
+All six configured targets must exist for the check to pass. The four Jekyll
 sites receive the assets, includes and registry. Every canonical file under
 `assets/console/` is byte-identical in every target, including `theme.js` and
 `site.svg`; there are no per-site asset substitutions or parity exemptions, and
@@ -153,8 +154,8 @@ through their adapter.
 
 Packaging differences are explicit in `scripts/sync.py`: the Jekyll sites use
 `assets/console/` or `public/assets/console/`, `_includes/` and `_data/`.
-Execmap uses `public/assets/console/` and receives the byte-identical registry
-as `public/console-projects.json`, without Jekyll includes or topic data. Its
+Execmap and Wire use `public/assets/console/` and receive the byte-identical registry
+as `public/console-projects.json`, without Jekyll includes or topic data. Each
 Node build owns the rendered header, local search and English language policy;
 these generated templates are not copies of the Jekyll includes.
 It emits `search.json` with title, description, full text, URL, type and content
@@ -164,6 +165,9 @@ Execmap's content and controls remain English under saved Turkish preferences,
 Turkish browser locales and `?lang=tr`. It does not load `language.js` or
 `i18n.js` or render a language selector. Those files are distributed for parity,
 not automatically enabled. A theme sync must not change this product policy.
+
+Wire uses the same Node packaging contract and the canonical registry directly;
+it must not append its own duplicate project entry. Its content is Turkish.
 
 For bilingual consumers, load `language.js` before the vocabulary adapter (`i18n.js`, or Pin Atlas's own
 `/i18n.js`) and before `theme.js`. Language precedence is a supported `?lang`,
@@ -203,9 +207,9 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
 `check_i18n.py` rejects duplicate keys and mismatched placeholders; sync runs it before copying.
-`npm run check` runs vocabulary and five-target parity checks (it needs the
+`npm run check` runs vocabulary and six-target parity checks (it needs the
 sibling checkouts); `npm test` runs isolated sync/repair checks, asset and
-registry drift rejection in all five targets, stale-file and missing-target
+registry drift rejection in all six targets, stale-file and missing-target
 rejection, the commit safeguards and negative vocabulary fixtures. Run
 `npm run test:console` for the shared English fallback, Turkish adapter,
 explicit-choice navigation, `<html lang>` preservation, highlighting and

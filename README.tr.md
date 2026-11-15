@@ -8,6 +8,7 @@ Zaryob sitelerinin paylaştığı, terminal görünümlü ortak konsol arayüzü
 * **[Syscall Reference](https://zaryob.github.io/syscall/)** (Linux sistem çağrısı başvurusu)
 * **[Execmap](https://zaryob.github.io/execmap/)** (ELF analizi ve tersine mühendislik)
 * **[Pin Atlas](https://zaryob.github.io/pin-atlas/)** (etkileşimli geliştirme kartı ve çip pin rehberi)
+* **[Wire](https://zaryob.github.io/wire/)** (RFC kaynaklı ağ protokolü başvurusu)
 
 ## Genel bakış
 
@@ -108,7 +109,7 @@ sistemdeki Chromium için `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` değişkenini ay
 
 Tek güncelleme yolu `scripts/sync.py` betiğidir. Ortak değişiklikleri bu depoda `main`
 üzerinde yapın, sonra kardeş depolara kopyalayın (bu deponun yanında beklenirler:
-`../zaryob.github.io`, `../kilavuzlar`, `../syscall`, `../pin-atlas`, `../execmap`;
+`../zaryob.github.io`, `../kilavuzlar`, `../syscall`, `../pin-atlas`, `../execmap`, `../wire`;
 her yol değiştirilebilir, bkz. `--help`):
 
 ```sh
@@ -140,7 +141,7 @@ GPL-2.0-or-later (bkz. `LICENSE`). Yazı tipleri SIL Open Font License ile lisan
 ## Bütünleştirme ve dil sözleşmesi
 
 Önce `python3 scripts/sync.py`, sonra `python3 scripts/sync.py --check` çalıştırın.
-Denetimin geçmesi için yapılandırılmış beş hedefin hepsi mevcut olmalıdır. Dört Jekyll
+Denetimin geçmesi için yapılandırılmış altı hedefin hepsi mevcut olmalıdır. Dört Jekyll
 sitesi dosyaları, include'ları ve kaydı alır. `assets/console/` altındaki her asıl
 dosya, `theme.js` ve `site.svg` dahil, bütün hedeflerde bayt bayt aynıdır; siteye özel
 dosya değişimi veya eşitlik istisnası yoktur ve orada izin verilen ek dosyalar yalnızca
@@ -151,7 +152,7 @@ bağdaştırıcılarıyla çevirir.
 
 Paketleme farkları `scripts/sync.py` içinde açıkça yazılıdır: Jekyll siteleri
 `assets/console/` veya `public/assets/console/`, `_includes/` ve `_data/` kullanır.
-Execmap `public/assets/console/` kullanır ve bayt bayt aynı kaydı
+Execmap ve Wire `public/assets/console/` kullanır ve bayt bayt aynı kaydı
 `public/console-projects.json` olarak alır; Jekyll include'ları ve konu verisi almaz.
 Oluşturulan başlık, yerel arama ve İngilizce dil politikası onun Node derlemesine
 aittir; üretilen bu şablonlar Jekyll include'larının kopyası değildir. Derleme başlık,
@@ -162,6 +163,9 @@ Türkçe tercihte, Türkçe tarayıcı dilinde ve `?lang=tr` ile de İngilizce k
 `language.js` veya `i18n.js` yüklemez, dil seçici göstermez. Bu dosyalar eşitlik için
 dağıtılır, kendiliğinden etkinleşmez. Bir tema eşitlemesi bu ürün politikasını
 değiştirmemelidir.
+
+Wire aynı Node paketleme sözleşmesini kullanır ve ortak kaydı doğrudan okur;
+kendi proje kaydını ikinci kez eklememelidir. İçerik dili Türkçedir.
 
 İki dilli sitelerde `language.js`, sözlük bağdaştırıcısından (`i18n.js` veya Pin
 Atlas'ın kendi `/i18n.js` dosyası) ve `theme.js` dosyasından önce yüklenir. Dil önceliği

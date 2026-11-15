@@ -14,6 +14,7 @@ Target repositories:
   - pin-atlas/               (public/assets/console, public/_includes, public/_data)
   - zaryob.github.io/        (assets/console, _includes, _data)
   - execmap/                 (public/assets/console, public/console-projects.json)
+  - wire/                    (public/assets/console, public/console-projects.json)
 
 Usage:
   python3 scripts/sync.py              # Sync all files to siblings
@@ -59,6 +60,7 @@ ALLOWED_EXTRAS = {
     'pin-atlas': set(),
     'zaryob.github.io': {'bundle.scss', 'site.css'},
     'execmap': {'COPYING'},
+    'wire': set(),
 }
 IGNORED_NAMES = {'.DS_Store'}
 COMMIT_BRANCH = 'main'
@@ -133,6 +135,7 @@ def main():
     parser.add_argument('--syscall', type=Path, default=WORKSPACE_ROOT / 'syscall', help='Path to syscall repo')
     parser.add_argument('--pin-atlas', type=Path, default=WORKSPACE_ROOT / 'pin-atlas', help='Path to pin-atlas repo')
     parser.add_argument('--home', type=Path, default=WORKSPACE_ROOT / 'zaryob.github.io', help='Path to zaryob.github.io repo')
+    parser.add_argument('--wire', type=Path, default=WORKSPACE_ROOT / 'wire', help='Path to wire repo')
     parser.add_argument('--execmap', type=Path, default=WORKSPACE_ROOT / 'execmap', help='Path to execmap repo')
     args = parser.parse_args()
     try:
@@ -163,13 +166,14 @@ def main():
 
     # Targets configuration: (name, repo_dir, target_base_dir)
     # Every asset is byte-identical, including English fallbacks and sibling license paths.
-    # Execmap's Node adapter owns rendered markup/language policy, not asset forks.
+    # Node adapters own rendered markup/language policy, not asset forks.
     targets = [
         ('kilavuzlar', args.guides, args.guides),
         ('syscall', args.syscall, args.syscall / 'public'),
         ('pin-atlas', args.pin_atlas, args.pin_atlas / 'public'),
         ('zaryob.github.io', args.home, args.home),
         ('execmap', args.execmap, args.execmap / 'public'),
+        ('wire', args.wire, args.wire / 'public'),
     ]
 
     # Pass 1: validate every target and plan the copies. Nothing is written here,
@@ -188,10 +192,10 @@ def main():
                 continue
 
         pairs = [(REPO_ROOT / 'assets' / 'console' / asset, target_base / 'assets' / 'console' / asset) for asset in assets]
-        for inc in ([] if name == 'execmap' else INCLUDES):
+        for inc in ([] if name in {'execmap', 'wire'} else INCLUDES):
             pairs.append((REPO_ROOT / '_includes' / inc, target_base / '_includes' / inc))
-        for dat in (['console_projects.json'] if name == 'execmap' else DATA_FILES):
-            pairs.append((REPO_ROOT / '_data' / dat, target_base / ('console-projects.json' if name == 'execmap' else f'_data/{dat}')))
+        for dat in (['console_projects.json'] if name in {'execmap', 'wire'} else DATA_FILES):
+            pairs.append((REPO_ROOT / '_data' / dat, target_base / ('console-projects.json' if name in {'execmap', 'wire'} else f'_data/{dat}')))
         plan[repo_path] = [(src, dst) for src, dst in pairs if src.is_file()]
 
         target_assets = target_base / 'assets' / 'console'
@@ -213,7 +217,7 @@ def main():
                 print(f"  - {diff}")
             sys.exit(1)
         else:
-            print("✓ All 5 configured suite repositories match the shared asset and adapter packaging contract.")
+            print(f"✓ All {len(targets)} configured suite repositories match the shared asset and adapter packaging contract.")
             sys.exit(0)
 
     if problems:
@@ -240,7 +244,7 @@ def main():
         if repo_files_affected:
             modified_repos[repo_path] = repo_files_affected
 
-    print(f"✓ Synchronized console-theme: {updated_files} file(s) updated across 5 configured repositories.")
+    print(f"✓ Synchronized console-theme: {updated_files} file(s) updated across {len(targets)} configured repositories.")
     if extras:
         # Never deleted automatically: remove them by hand or list them in ALLOWED_EXTRAS.
         print("Unexpected files left in place (--check will fail until resolved):")

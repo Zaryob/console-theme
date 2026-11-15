@@ -80,7 +80,7 @@ async function checkPage(context, name, path, width, scale) {
     });
     assert.deepEqual(errors, [], label);
     assert.equal(metrics.projects, 6, `${label}: project menu must include all six sites exactly once`);
-    assert.equal(metrics.suiteLinks, 6, `${label}: common footer must include all six sites`);
+    assert.equal(metrics.suiteLinks, 5, `${label}: common footer must list the five project sites`);
     assert.ok(metrics.titleInMain, `${label}: skip link must lead to the page title`);
     if(width<=1180 && scale===1) assert.ok(metrics.header<=80, `${label}: compact header is too tall`);
     assert.equal(metrics.body, 16 * scale, `${label}: body should follow the reader's text size`);

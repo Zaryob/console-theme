@@ -39,7 +39,7 @@ console-theme/
 │   ├── console-icon.html     # SVG sprite yardımcısı
 │   ├── console-content-language.html # Çeviri bildirim şeridi
 │   ├── console-alternates.html       # SEO hreflang üreticisi (tr, en, x-default)
-│   ├── console-suite.html            # Beş siteyi, yazarı ve feed'i bağlayan alt bilgi şeridi
+│   ├── console-footer.html           # Ortak ls -F alt bilgisi: site bağlantıları, kardeş projeler, iletişim
 │   ├── console-analytics.html        # Jekyll sitelerinin ortak Umami ve Google Analytics etiketleri
 │   └── console/              # Dört include'un sync.py ile yenilenen kopyası
 ├── _data/                    # Kayıt verileri

@@ -43,7 +43,7 @@ INCLUDES = [
     'console-icon.html',
     'console-content-language.html',
     'console-alternates.html',
-    'console-suite.html',
+    'console-footer.html',
     'console-analytics.html',
 ]
 

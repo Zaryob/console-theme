@@ -43,6 +43,7 @@ INCLUDES = [
     'console-content-language.html',
     'console-alternates.html',
     'console-suite.html',
+    'console-analytics.html',
 ]
 
 DATA_FILES = [

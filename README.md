@@ -39,6 +39,7 @@ console-theme/
 │   ├── console-content-language.html # Translation notification strip
 │   ├── console-alternates.html       # SEO hreflang generator (tr, en, x-default)
 │   ├── console-suite.html            # Footer strip linking the five sites, author and feed
+│   ├── console-analytics.html        # Umami and Google Analytics tags shared by the Jekyll sites
 │   └── console/              # Mirror of the includes, refreshed by sync.py
 ├── _data/                    # Registry data
 │   ├── console_projects.json # The 5 suite projects registry

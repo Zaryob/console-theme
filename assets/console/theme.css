@@ -260,8 +260,13 @@ mark, .console-highlight { background: var(--selection); color: var(--ink); outl
 @media (max-width: 1180px) {
   html { scroll-padding-top: 5rem; }
   .console-header__inner { flex-wrap: wrap; gap: 0 18px; min-height: 68px; padding: 12px 20px; }
-  .console-brand { margin: 0; }
-  .console-header-actions { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
+  .console-identity { flex: 1 1 0; }
+  .console-brand { min-width: 0; flex-shrink: 1; margin: 0; overflow: hidden; text-overflow: ellipsis; }
+  .console-projects { flex: 1 1 0; min-width: 44px; }
+  .console-projects > summary { overflow: hidden; }
+  .console-project-path { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .console-prompt-dollar { flex-shrink: 0; }
+  .console-header-actions { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 8px; margin-left: auto; }
   .console-js .console-search-compact { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 40px; padding: 8px; }
   .console-search-compact:hover { color: var(--accent); background: var(--surface); border-color: var(--accent); }
   .console-js .console-menu { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 40px; margin-left: 0; padding: 8px; }

@@ -86,6 +86,11 @@ reducing body or code text. SVG pin labels retain their drawing coordinates;
 the map scrolls inside its own panel. `--shell-width` and `--gutter` keep the
 outer layout aligned across sites.
 
+In compact navigation, the project path shrinks before the search and menu
+controls. Its complete text remains available as the project switcher's
+accessible description and in the project menu. Keep `.console-identity` free
+of clipping so the dropdown can extend beyond the abbreviated path.
+
 Install the pinned browser tooling with `npm ci` (and `npx playwright install chromium`
 if no browser is installed). After building all five sites, run the home repository's
 `python3 scripts/preview_suite.py --port 4180`. With Playwright installed and

@@ -59,7 +59,17 @@
       dropdown.querySelector('summary').setAttribute('aria-expanded', 'false');
       if (restoreFocus) dropdown.querySelector('summary').focus();
     };
-    dropdowns.forEach(dropdown => {
+    dropdowns.forEach((dropdown, index) => {
+      const projectPath = dropdown.querySelector('.console-project-path');
+      if (projectPath) {
+        // The mobile path may be ellipsized; keep its full text as context
+        // without replacing the translated action name or other descriptions.
+        projectPath.id ||= `console-project-context-${index}`;
+        const summary = dropdown.querySelector('summary');
+        const descriptions = new Set((summary.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
+        descriptions.add(projectPath.id);
+        summary.setAttribute('aria-describedby', [...descriptions].join(' '));
+      }
       const updateDropdown = () => {
         dropdown.querySelector('summary').setAttribute('aria-expanded', String(dropdown.open));
         if (dropdown.open) dropdowns.forEach(other => { if (other !== dropdown && other.open) closeDropdown(other); });

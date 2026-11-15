@@ -79,6 +79,10 @@ warning, danger veya info varyantlarını kullanır. `--success-surface`,
 temayla değişir; açık temadan alınmış sabit saydam renklerle değiştirilmemelidir.
 Tarayıcı testleri açık, koyu ve sistem-koyu durumlarında metin kontrastını ölçer.
 
+Dar gezinmede arama ve menü düğmeleri sabit kalır, proje yolu kısalır. Tam yol,
+proje seçicinin erişilebilir açıklamasında ve proje menüsünde korunur. Açılır
+menüyü kesmemek için `.console-identity` üzerinde taşma kırpması kullanmayın.
+
 Bu değerler okurun tarayıcıdaki metin ayarına görelidir; olağan 16px varsayılanında
 gövde metni 16px, uzun metin 18px olur. Mobil düzenler gövde veya kod metnini
 küçültmek yerine yeniden akar. SVG pin etiketleri çizim koordinatlarını korur; harita

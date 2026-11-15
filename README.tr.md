@@ -215,9 +215,11 @@ korunması, vurgulama ve arama sağlamlığına ilişkin tarayıcı regresyon te
 regresyon matrisi Execmap ve Wire’ı da kapsar (18 sayfa türü × 5 genişlik × 2 metin
 boyutu). Bu komutların hiçbiri bir siteyi yayımlamaz.
 
-Favicon politikası: Ana site ve Kılavuzlar ortak kökteki `/favicon.ico` dosyasını
-kullanır; Pin Atlas ve Execmap kendi uygulama SVG simgelerini korur. Syscall,
-tarayıcının köke dönen varsayılan favicon davranışını korur. Kılavuzlar'ın kök
+Favicon politikası: her sitenin aynı tarzda kendi SVG simgesi vardır (64×64,
+4px köşe yarıçapı, `#171a1f` zemin, `#e2b56f` çizgi): Ana site dalga, Kılavuzlar
+açık kitap, Execmap komut istemi, Wire paket alanları, Syscall kullanıcı/çekirdek
+sınırını geçen ok, Pin Atlas bacaklı yonga. Ana site ayrıca `favicon.ico` ve
+dokunmatik simgeler sunar. Kılavuzlar'ın kök
 başlıklarında site adı yinelenmez.
 
 Ortak arama, Pagefind yanında ve yedek kipte hem Execmap hem Wire dizinini

@@ -220,9 +220,11 @@ The typography browser
 regression matrix includes Execmap and Wire (18 page types × 5 widths × 2 text sizes).
 No site is published by these commands.
 
-Favicon policy: Home and Guides use the suite root `/favicon.ico`; Pin Atlas
-and Execmap retain their application SVG icons. Syscall retains the browser's
-origin-root favicon fallback. Guides root titles omit a repeated site name.
+Favicon policy: every site has its own SVG icon in one style (64×64, 4px
+corner radius, `#171a1f` ground, `#e2b56f` line): Home a wave, Guides an open
+book, Execmap a prompt, Wire packet fields, Syscall an arrow crossing the
+user/kernel boundary, Pin Atlas a chip with pins. Home also ships
+`favicon.ico` and touch icons. Guides root titles omit a repeated site name.
 
 Shared search queries both Node adapters (Execmap and Wire) alongside Pagefind
 and in fallback mode. Each result retains its content language; an unavailable

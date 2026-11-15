@@ -67,7 +67,18 @@ sites. App styles should use its variables instead of introducing pixel sizes:
 * `--text-prose`: `1.125rem` for articles and guides, with `--line-prose: 1.8`.
 * `--text-sm` / `--text-xs`: `.875rem` / `.8125rem` for secondary text and metadata.
 * `--text-h1` through `--text-h4`: the shared heading hierarchy.
+* `--text-hero`: the landing-page heading scale; keep `--text-h1` for content headings.
 * `--font-mono` / `--font-prose`: locally bundled IBM Plex Mono / Sans.
+
+Use `.console-prose` for long explanations and `.console-prose--compact` for
+short descriptions. These are opt-in roles: navigation, metadata and technical
+data retain the mono default. `.console-meta` provides the secondary mono role.
+Status labels use `.console-badge` with `--success`, `--warning`, `--danger` or
+`--info` modifiers (for example, `console-badge--warning`). The corresponding
+`--success-surface`, `--warning-surface`, `--danger-surface` and `--info-surface`
+tokens are opaque theme-aware backgrounds; do not substitute fixed translucent
+colors from the light theme. Browser tests check normal text contrast in light,
+dark and system-dark modes.
 
 These are relative to the reader's browser text setting; at the usual 16px
 default, body text is 16px and prose is 18px. Mobile layouts reflow instead of

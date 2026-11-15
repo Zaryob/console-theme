@@ -69,6 +69,16 @@ stilleri piksel boyutları tanımlamak yerine buradaki değişkenleri kullanmal�
 * `--text-h1` – `--text-h4`: ortak başlık hiyerarşisi.
 * `--font-mono` / `--font-prose`: yerelde paketlenen IBM Plex Mono / Sans.
 
+Giriş başlığı `--text-hero`, içerik başlığı `--text-h1` ölçeğini kullanır.
+Uzun açıklamalarda `.console-prose`, kısa açıklamalarda ek olarak
+`.console-prose--compact` kullanın. Bu roller açıkça seçilir; gezinme ve teknik
+veriler mono kalır. `.console-meta` ikincil mono metin rolüdür.
+Durum etiketleri `.console-badge` ve `console-badge--warning` gibi success,
+warning, danger veya info varyantlarını kullanır. `--success-surface`,
+`--warning-surface`, `--danger-surface` ve `--info-surface` opak zemin token'ları
+temayla değişir; açık temadan alınmış sabit saydam renklerle değiştirilmemelidir.
+Tarayıcı testleri açık, koyu ve sistem-koyu durumlarında metin kontrastını ölçer.
+
 Bu değerler okurun tarayıcıdaki metin ayarına görelidir; olağan 16px varsayılanında
 gövde metni 16px, uzun metin 18px olur. Mobil düzenler gövde veya kod metnini
 küçültmek yerine yeniden akar. SVG pin etiketleri çizim koordinatlarını korur; harita

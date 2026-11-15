@@ -44,8 +44,7 @@ console-theme/
 ├── scripts/
 │   ├── sync.py               # Copies the files above to the sibling repositories; --check verifies them
 │   ├── check_i18n.py         # Vocabulary validation (duplicate keys, placeholders)
-│   ├── check_typography.cjs  # Browser typography matrix against a local suite preview
-│   └── check_assets_export.py # Compares a ref with assets/console (legacy `assets` branch only)
+│   └── check_typography.cjs  # Browser typography matrix against a local suite preview
 ├── tests/
 │   ├── test_sync.py          # sync.py and vocabulary contract (npm test)
 │   └── theme.test.cjs        # Playwright regressions (npm run test:console)
@@ -112,10 +111,7 @@ reports other extras and never deletes them.
 
 To add the theme to a new site, add the target to `scripts/sync.py` and run it.
 
-The sites do not use `git subtree`. An `assets` branch with a flattened
-`assets/console/` export still exists from an earlier workflow; it is not
-updated and must not be pulled. `scripts/check_assets_export.py` only compares
-such a ref with `HEAD:assets/console` and is not part of `npm run check` or CI.
+The sites do not use `git subtree`; the earlier `assets` export branch has been removed.
 
 ## License
 

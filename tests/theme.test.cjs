@@ -234,7 +234,7 @@ test('malformed index records are skipped and a failing render reports an error'
   const status = dialog.locator('[role="status"]');
   await dialog.locator('input').fill('typeless');
   await dialog.locator('a', { hasText: 'Typed typeless record' }).waitFor();
-  assert.equal(await dialog.locator('a', { hasText: 'Typeless record' }).first().locator('small').first().textContent(), 'pages/');
+  assert.equal(await dialog.locator('a', { hasText: 'Typeless record' }).first().locator('small').first().textContent(), 'Page');
   assert.equal(await dialog.locator('a', { hasText: 'Bad address' }).count(), 0);
   assert.equal(await dialog.locator('li').count(), 4);
   assert.equal(await status.textContent(), 'Full-text search unavailable. Showing title and topic matches.');

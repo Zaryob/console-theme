@@ -1,5 +1,7 @@
 # Zaryob Console Theme
 
+**English** · [Türkçe](README.tr.md)
+
 The shared terminal-styled console interface for the Zaryob suite:
 * **[zaryob.github.io](https://zaryob.github.io/)** (Home & Technical Posts)
 * **[Kılavuzlar](https://zaryob.github.io/kilavuzlar/)** (Guides & System Administration)

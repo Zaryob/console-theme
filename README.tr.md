@@ -219,3 +219,7 @@ Favicon politikası: Ana site ve Kılavuzlar ortak kökteki `/favicon.ico` dosya
 kullanır; Pin Atlas ve Execmap kendi uygulama SVG simgelerini korur. Syscall,
 tarayıcının köke dönen varsayılan favicon davranışını korur. Kılavuzlar'ın kök
 başlıklarında site adı yinelenmez.
+
+Ortak arama, Pagefind yanında ve yedek kipte hem Execmap hem Wire dizinini
+sorgular. Sonuçlar içerik dilini korur; bir dizin yüklenemezse diğer sitelerin
+sonuçları gösterilir ve eksik dizin bilgisi bildirilir.

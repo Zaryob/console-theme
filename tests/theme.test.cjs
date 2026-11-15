@@ -44,7 +44,7 @@ for (const pagefind of [true, false]) {
           } else if (pathname.endsWith('/search.json')) {
             await route.fulfill({ json: pathname === '/execmap/search.json'
               ? [{ title: 'English ELF proof', description: 'elfproof', text: 'elfproof', url: 'rehberler/proof.html', type: 'execmap/', lang: 'en' }]
-              : [] });
+              : pathname === '/wire/search.json' ? [null, { title: 'Türkçe TCP kanıtı', description: 'wireproof', url: 'tcp/', lang: 'tr' }] : [] });
           } else {
             throw new Error(`Unexpected contract fixture request: ${pathname}`);
           }
@@ -70,6 +70,14 @@ for (const pagefind of [true, false]) {
         if (pagefind && language !== 'tr') assert.equal(await dialog.locator('[role="status"]').textContent(), '1 content results');
         assert.ok(requests.includes('/pagefind/pagefind.js'));
         assert.equal(requests.includes('/search.json'), !pagefind);
+        await dialog.locator('input').fill('wireproof');
+        const wire = dialog.locator('a', { hasText: 'Türkçe TCP kanıtı' });
+        await wire.waitFor();
+        assert.equal(await wire.getAttribute('lang'), 'tr');
+        const wireAddress = new URL(await wire.getAttribute('href'));
+        assert.equal(wireAddress.pathname, '/wire/tcp/');
+        assert.equal(wireAddress.searchParams.get('highlight'), 'wireproof');
+        assert.ok(requests.includes('/wire/search.json'));
         assert.deepEqual(errors, []);
       } finally {
         await context.close();

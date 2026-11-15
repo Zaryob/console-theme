@@ -223,3 +223,7 @@ No site is published by these commands.
 Favicon policy: Home and Guides use the suite root `/favicon.ico`; Pin Atlas
 and Execmap retain their application SVG icons. Syscall retains the browser's
 origin-root favicon fallback. Guides root titles omit a repeated site name.
+
+Shared search queries both Node adapters (Execmap and Wire) alongside Pagefind
+and in fallback mode. Each result retains its content language; an unavailable
+adapter reports partial results without hiding the other sites.

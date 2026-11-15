@@ -101,7 +101,7 @@ available to Node, run:
 npm run test:typography
 ```
 
-The browser check covers fifteen page types at five viewport widths, at default
+The browser check covers eighteen page types at five viewport widths, at default
 and 200% text sizes. It checks loaded fonts, readable article and form text,
 JavaScript/asset errors, and page overflow. Tables and pin diagrams may scroll
 inside their panels. Set `ZARYOB_PREVIEW_URL` for another preview address, or
@@ -217,7 +217,7 @@ search robustness browser regressions (requires installed Chromium).
 `.github/workflows/ci.yml` runs `check_i18n.py`, `npm test` and
 `npm run test:console` on every push to `main` and on pull requests.
 The typography browser
-regression matrix now includes execmap (15 page types × 5 widths × 2 text sizes).
+regression matrix includes Execmap and Wire (18 page types × 5 widths × 2 text sizes).
 No site is published by these commands.
 
 Favicon policy: Home and Guides use the suite root `/favicon.ico`; Pin Atlas

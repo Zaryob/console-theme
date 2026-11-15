@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
-/* Run against the five built sites served by scripts/preview_suite.py. */
+/* Run against the six built sites served by scripts/preview_suite.py. */
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 
@@ -17,6 +17,9 @@ const cases = [
   ['syscall arguments', '/syscall/?arch=x64&view=args'],
   ['board library', '/pin-atlas/'],
   ['board workspace', '/pin-atlas/#board=pico-family&profile=pico&pin=1'],
+  ['wire', '/wire/'],
+  ['wire protocol', '/wire/ipv4/'],
+  ['wire guide', '/wire/kilavuz/'],
   ['execmap', '/execmap/'],
   ['execmap article', '/execmap/rehberler/elf-dosyadan-bellege.html'],
 ];
@@ -41,6 +44,9 @@ async function checkPage(context, name, path, width, scale) {
     if (scale !== 1) await page.addStyleTag({ content: `html { font-size: ${scale * 100}% !important; }` });
     await page.evaluate(async () => {
       await new Promise(requestAnimationFrame);
+      // Force style resolution before waiting for lazily requested webfonts.
+      document.body.getBoundingClientRect();
+      await document.fonts.load('16px "IBM Plex Mono"');
       await document.fonts.ready;
       // A terminal cursor may blink forever; only finite layout transitions settle.
       await Promise.all(document.getAnimations()
@@ -53,16 +59,32 @@ async function checkPage(context, name, path, width, scale) {
       const size = element => parseFloat(getComputedStyle(element).fontSize);
       return {
         body: size(document.body),
+        projects: document.querySelectorAll('.console-project-menu a').length,
+        suiteLinks: document.querySelectorAll('.console-suite__list a').length,
+        titleInMain: document.querySelector('main').contains(visible('h1')[0]),
+        header: document.querySelector('.console-header').getBoundingClientRect().height,
         overflow: document.documentElement.scrollWidth - innerWidth,
+        overflowSources: visible('body *').filter(element=>{
+          if(element.closest('svg')) return false;
+          if(element.getBoundingClientRect().right<=innerWidth+1) return false;
+          for(let parent=element.parentElement;parent && parent!==document.body;parent=parent.parentElement) {
+            if(['auto','scroll','hidden','clip'].includes(getComputedStyle(parent).overflowX)) return false;
+          }
+          return true;
+        }).slice(0,6).map(element=>element.tagName+'.'+element.className+':'+element.textContent.trim().slice(0,24)+' (in '+element.parentElement.className+')'),
         smallText: visible('main p, main li, main button').filter(element => !element.closest('svg') && size(element) < 13).map(element => element.outerHTML.slice(0, 100)),
-        smallFields: visible('input:not([type=radio],[type=checkbox]), select, textarea').filter(element => size(element) < 16).map(element => element.outerHTML.slice(0, 100)),
-        prose: visible('.post-content, .guide-content article').map(size),
+        smallFields: visible('input:not([type=radio],[type=checkbox]), select, textarea').filter(element => size(element) < 16).map(element => ({element:element.outerHTML.slice(0,100),size:size(element),font:getComputedStyle(element).font})),
+        prose: visible('.post-content, .guide-content article, .wire-site .guide-content').map(size),
         monoLoaded: [...document.fonts].some(face => face.family === 'IBM Plex Mono' && face.status === 'loaded'),
       };
     });
     assert.deepEqual(errors, [], label);
+    assert.equal(metrics.projects, 6, `${label}: project menu must include all six sites exactly once`);
+    assert.equal(metrics.suiteLinks, 6, `${label}: common footer must include all six sites`);
+    assert.ok(metrics.titleInMain, `${label}: skip link must lead to the page title`);
+    if(width<=1180 && scale===1) assert.ok(metrics.header<=80, `${label}: compact header is too tall`);
     assert.equal(metrics.body, 16 * scale, `${label}: body should follow the reader's text size`);
-    assert.ok(metrics.overflow <= 1, `${label}: page overflows by ${metrics.overflow}px`);
+    assert.ok(metrics.overflow <= 1, `${label}: page overflows by ${metrics.overflow}px (${metrics.overflowSources.join(", ")})`);
     assert.deepEqual(metrics.smallText, [], `${label}: undersized text`);
     assert.deepEqual(metrics.smallFields, [], `${label}: undersized form fields`);
     assert.ok(metrics.prose.every(size => size >= 18 * scale), `${label}: article text is too small`);

@@ -99,7 +99,7 @@ Playwright kurulu ve Node tarafından erişilebilirken:
 npm run test:typography
 ```
 
-Tarayıcı denetimi on beş sayfa türünü beş görünüm genişliğinde, varsayılan ve %200
+Tarayıcı denetimi on sekiz sayfa türünü beş görünüm genişliğinde, varsayılan ve %200
 metin boyutunda kapsar. Yüklenen yazı tiplerini, yazı ve form metninin okunabilirliğini,
 JavaScript ve dosya hatalarını ve sayfa taşmasını denetler. Tablolar ve pin şemaları
 kendi panellerinde kaydırılabilir. Başka bir önizleme adresi için `ZARYOB_PREVIEW_URL`,
@@ -212,7 +212,7 @@ korunması, vurgulama ve arama sağlamlığına ilişkin tarayıcı regresyon te
 `npm run test:console` çalıştırın (kurulu Chromium gerekir).
 `.github/workflows/ci.yml`, `main` dalına yapılan her push'ta ve pull request'lerde
 `check_i18n.py`, `npm test` ve `npm run test:console` çalıştırır. Tipografi tarayıcı
-regresyon matrisi artık execmap'i de kapsar (15 sayfa türü × 5 genişlik × 2 metin
+regresyon matrisi Execmap ve Wire’ı da kapsar (18 sayfa türü × 5 genişlik × 2 metin
 boyutu). Bu komutların hiçbiri bir siteyi yayımlamaz.
 
 Favicon politikası: Ana site ve Kılavuzlar ortak kökteki `/favicon.ico` dosyasını

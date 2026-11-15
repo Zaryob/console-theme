@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+import os
 import subprocess
 import sys
 import tempfile
@@ -48,6 +50,94 @@ class SuiteContracts(unittest.TestCase):
                 self.assertTrue((public / 'assets/console/ICONS-LICENSE.txt').is_file())
             (base / 'home').rename(base / 'missing-home')
             self.assertEqual(run('--check').returncode, 1)
+
+    def targets(self, base):
+        names = ['guides', 'home', 'syscall', 'pin-atlas', 'execmap']
+        command = [sys.executable, str(ROOT / 'scripts/sync.py')]
+        for name in names:
+            (base / name).mkdir()
+            command.extend([f'--{name}', str(base / name)])
+        return names, lambda *options: subprocess.run(command + list(options), capture_output=True, text=True)
+
+    def test_check_rejects_unlisted_extras_and_copy_validates_first(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            _, run = self.targets(base)
+            # A missing target stops the run before anything is copied elsewhere.
+            (base / 'execmap').rename(base / 'missing-execmap')
+            result = run()
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('Nothing was copied', result.stdout)
+            self.assertFalse((base / 'guides/assets').exists())
+            (base / 'missing-execmap').rename(base / 'execmap')
+            self.assertEqual(run().returncode, 0)
+            # The documented site-owned files are accepted only in their own target.
+            allowed = [
+                base / 'home/assets/console/bundle.scss', base / 'home/assets/console/site.css',
+                base / 'syscall/public/assets/console/syscall.css', base / 'execmap/public/assets/console/COPYING',
+            ]
+            for path in allowed:
+                path.write_text('site-owned')
+            self.assertEqual(run('--check').returncode, 0)
+            for stale in [
+                base / 'guides/assets/console/site.css', base / 'pin-atlas/public/assets/console/old-theme.js',
+                base / 'execmap/public/assets/console/fonts/Removed.woff2',
+            ]:
+                with self.subTest(stale=stale):
+                    stale.write_text('stale')
+                    result = run('--check')
+                    self.assertEqual(result.returncode, 1)
+                    self.assertIn(str(stale), result.stdout)
+                    # Copy mode reports the file and never deletes it.
+                    result = run()
+                    self.assertEqual(result.returncode, 0)
+                    self.assertIn(str(stale), result.stdout)
+                    self.assertTrue(stale.is_file())
+                    stale.unlink()
+            self.assertEqual(run('--check').returncode, 0)
+
+    def test_commit_is_limited_to_synced_files_and_refuses_other_branches(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            names, run = self.targets(base)
+            environment = {
+                **os.environ, 'GIT_CONFIG_GLOBAL': os.devnull, 'GIT_CONFIG_SYSTEM': os.devnull,
+                'GIT_AUTHOR_NAME': 'Test', 'GIT_AUTHOR_EMAIL': 'test@example.invalid',
+                'GIT_COMMITTER_NAME': 'Test', 'GIT_COMMITTER_EMAIL': 'test@example.invalid',
+            }
+
+            def git(name, *arguments):
+                return subprocess.run(['git', *arguments], cwd=base / name, capture_output=True, text=True, env=environment, check=True).stdout
+
+            for name in names:
+                git(name, 'init', '--quiet', '--initial-branch=main')
+                (base / name / 'README').write_text('site')
+                git(name, 'add', 'README')
+                git(name, 'commit', '--quiet', '-m', 'Initial')
+            # Unrelated work is already staged in one sibling.
+            (base / 'guides/unrelated.txt').write_text('in progress')
+            git('guides', 'add', 'unrelated.txt')
+            # Another sibling sits on a feature branch: refuse before copying anywhere.
+            git('syscall', 'checkout', '--quiet', '-b', 'feature')
+            command = [sys.executable, str(ROOT / 'scripts/sync.py')]
+            for name in names:
+                command.extend([f'--{name}', str(base / name)])
+            commit = lambda *options: subprocess.run(command + list(options), capture_output=True, text=True, env=environment)
+            result = commit('--commit', 'Sync theme')
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('syscall: refusing to commit on feature', result.stdout)
+            self.assertFalse((base / 'guides/assets').exists())
+            self.assertEqual(commit('--check', '--commit', 'Sync theme').returncode, 1)
+            git('syscall', 'checkout', '--quiet', 'main')
+            result = commit('--commit', 'Sync theme')
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            for name in names:
+                self.assertEqual(git(name, 'log', '-1', '--format=%s').strip(), 'Sync theme')
+            committed = git('guides', 'show', '--name-only', '--format=', 'HEAD').split()
+            self.assertIn('assets/console/theme.js', committed)
+            self.assertNotIn('unrelated.txt', committed)
+            self.assertEqual(git('guides', 'status', '--porcelain').strip(), 'A  unrelated.txt')
+            self.assertEqual(run('--check').returncode, 0)
 
     def test_duplicate_keys_and_lost_placeholders_fail_validation(self):
         with tempfile.TemporaryDirectory() as directory:

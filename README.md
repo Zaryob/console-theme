@@ -21,23 +21,37 @@ The console theme unifies all sites under an amber/VT100 retro terminal aestheti
 
 ```text
 console-theme/
-├── assets/console/
+├── assets/console/           # Copied byte-for-byte to all five sites
 │   ├── theme.css             # Main console layout and color variables
-│   ├── theme.js              # Theme switcher, search dialog, code copy buttons
+│   ├── theme.js              # Theme switcher, search dialog, code copy buttons, ?highlight=
 │   ├── language.js           # Shared preference, URL and storage state
 │   ├── i18n.js               # Common UI localization dictionary
 │   ├── site.svg              # Theme vector icon set
 │   ├── regular.svg           # File & folder icons
 │   ├── select-chevron.svg    # Form controls dropdown indicator
-│   └── fonts/                # IBM Plex Mono and Sans webfonts
-├── _includes/                # Jekyll layout components
+│   ├── ICONS-LICENSE.txt     # Font Awesome Free attribution for the SVG files
+│   └── fonts/                # IBM Plex Mono and Sans webfonts, OFL.txt
+├── _includes/                # Jekyll layout components (the four Jekyll sites)
 │   ├── console-header.html   # Shared terminal prompt header
 │   ├── console-icon.html     # SVG sprite helper
 │   ├── console-content-language.html # Translation notification strip
-│   └── console-alternates.html       # SEO hreflang generator
-└── _data/                    # Registry data
-    ├── console_projects.json # The 5 suite projects registry
-    └── writing_topics.yml    # Topic taxonomy
+│   ├── console-alternates.html       # SEO hreflang generator (tr, en, x-default)
+│   └── console/              # Mirror of the four includes, refreshed by sync.py
+├── _data/                    # Registry data
+│   ├── console_projects.json # The 5 suite projects registry
+│   ├── writing_topics.yml    # Topic taxonomy
+│   └── console/              # Mirror of the two data files, refreshed by sync.py
+├── scripts/
+│   ├── sync.py               # Copies the files above to the sibling repositories; --check verifies them
+│   ├── check_i18n.py         # Vocabulary validation (duplicate keys, placeholders)
+│   ├── check_typography.cjs  # Browser typography matrix against a local suite preview
+│   └── check_assets_export.py # Compares a ref with assets/console (legacy `assets` branch only)
+├── tests/
+│   ├── test_sync.py          # sync.py and vocabulary contract (npm test)
+│   └── theme.test.cjs        # Playwright regressions (npm run test:console)
+├── .github/workflows/ci.yml  # Runs check_i18n.py, npm test and npm run test:console
+├── package.json              # Pins Playwright; no runtime dependencies
+└── LICENSE                   # GPL-2.0-or-later
 ```
 
 ## Text and layout scale
@@ -72,57 +86,49 @@ JavaScript/asset errors, and page overflow. Tables and pin diagrams may scroll
 inside their panels. Set `ZARYOB_PREVIEW_URL` for another preview address, or
 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` for a system Chromium installation.
 
-## Usage with Git Subtree
+## Distributing the theme
 
-`main` contains the canonical source, templates, registry and sync tools. The
-`assets` branch is the flattened `assets/console/` export used by site subtrees;
-templates and registry files are synchronized separately by `scripts/sync.py`.
-
-### Adding to a project
-To add this theme to a project repository:
+`scripts/sync.py` is the only update mechanism. Make shared changes in this
+repository on `main`, then copy them into the sibling checkouts (expected next
+to this one: `../zaryob.github.io`, `../kilavuzlar`, `../syscall`,
+`../pin-atlas`, `../execmap`; each path can be overridden, see `--help`):
 
 ```sh
-# For Jekyll projects (into _console or assets/console):
-git subtree add --prefix assets/console https://github.com/Zaryob/console-theme.git assets --squash
+python3 scripts/sync.py            # copy assets, includes and registry
+python3 scripts/sync.py --check    # read-only parity check, exit 1 on any difference
 ```
 
-### Pulling theme updates
-When updates are pushed to `console-theme`:
+Every target is validated before the first file is written, so a missing
+checkout cannot leave the suite half-updated. `--commit "msg"` and
+`--auto-commit` additionally commit in each sibling: only the files the script
+wrote (other staged work is left staged and uncommitted), and only when every
+sibling is on `main`. Nothing is pushed.
 
-```sh
-git subtree pull --prefix assets/console https://github.com/Zaryob/console-theme.git assets --squash
-```
+`--check` also rejects files under a target's `assets/console/` that are not
+canonical. Site-owned files that belong there are listed per target in
+`ALLOWED_EXTRAS` in `scripts/sync.py` (currently `bundle.scss` and `site.css`
+in the home site, `syscall.css` in Syscall, `COPYING` in Execmap); copy mode
+reports other extras and never deletes them.
 
-### Publishing the shared assets
-Make shared changes in this repository first. After committing them to `main`,
-export the assets for subtree consumers:
+To add the theme to a new site, add the target to `scripts/sync.py` and run it.
 
-```sh
-git subtree push --prefix assets/console origin assets
-```
-
-Verify the complete export tree, including unexpected nested files:
-
-```sh
-git fetch origin assets
-python3 scripts/check_assets_export.py origin/assets
-```
-
-This compares the export with `HEAD:assets/console`. The flat export must not
-contain another `assets/console/` directory. `scripts/sync.py --check` separately
-verifies the copies in all five sites.
+The sites do not use `git subtree`. An `assets` branch with a flattened
+`assets/console/` export still exists from an earlier workflow; it is not
+updated and must not be pulled. `scripts/check_assets_export.py` only compares
+such a ref with `HEAD:assets/console` and is not part of `npm run check` or CI.
 
 ## License
 
-GPL-2.0-or-later. Fonts are licensed under the SIL Open Font License (OFL). SVG icons include Font Awesome Free.
+GPL-2.0-or-later (see `LICENSE`). Fonts are licensed under the SIL Open Font License (`assets/console/fonts/OFL.txt`). SVG icons include Font Awesome Free, CC BY 4.0 (`assets/console/ICONS-LICENSE.txt`).
 
 ## Integration and language contract
 
 Run `python3 scripts/sync.py`, then `python3 scripts/sync.py --check`.
 All five configured targets must exist for the check to pass. The four Jekyll
-sites receive the assets, includes and registry. All files under
-`assets/console/` are byte-identical in every target, including `theme.js` and
-`site.svg`; there are no per-site asset substitutions or parity exemptions.
+sites receive the assets, includes and registry. Every canonical file under
+`assets/console/` is byte-identical in every target, including `theme.js` and
+`site.svg`; there are no per-site asset substitutions or parity exemptions, and
+the only additional files allowed there are the ones in `ALLOWED_EXTRAS`.
 The SVG attribution points to the bundled sibling `ICONS-LICENSE.txt`.
 `theme.js` uses English source labels (including interpolation) when no
 vocabulary adapter is loaded; bilingual consumers translate those labels
@@ -145,14 +151,31 @@ not automatically enabled. A theme sync must not change this product policy.
 For bilingual consumers, load `language.js` before the vocabulary adapter (`i18n.js`, or Pin Atlas's own
 `/i18n.js`) and before `theme.js`. Language precedence is a supported `?lang`,
 then a saved preference, then the primary browser language (TR for Turkish,
-EN otherwise). Invalid saved values are ignored. Both adapters subscribe to
-`ZaryobLanguage`; storage changes update open tabs without forced content
-navigation. Project links carry only the selected language preference, so they
-also work with storage disabled. Each adapter owns its application vocabulary.
-Article bodies keep their actual `lang`; existing alternate links determine
-edition navigation independently of the project's baseurl. Query and fragment
-state survive edition changes. Pagination stays put when content already uses
-the requested language.
+EN otherwise). Invalid saved values are ignored. The first two are an explicit
+choice (`ZaryobLanguage.explicit`); the browser language is only a guess. A
+guess translates the shared controls and nothing else: it never navigates to
+another edition, is not stored, and is not appended to project or search links.
+Only an explicit choice (the language selector, a saved selection, or `?lang=`)
+follows the page's registered alternate edition. The content-language note
+offers the other edition in every case.
+
+`<html lang>` always states the language of the page content and the shared
+scripts do not rewrite it (Pagefind is handed the interface language through it
+for one synchronous call and the content language is restored at once). The interface language is exposed as
+`data-ui-language` on `<html>` (and `ZaryobLanguage.language`); translated
+controls carry their own `lang`. Site code and styles that need the interface
+language must read `data-ui-language`, not `document.documentElement.lang`.
+Shared search follows the interface language.
+
+Both adapters subscribe to `ZaryobLanguage`; storage changes update open tabs
+without forced content navigation. Project links carry only an explicit
+language preference, so they also work with storage disabled. Each adapter owns
+its application vocabulary. Article bodies keep their actual `lang`; existing
+alternate links determine edition navigation independently of the project's
+baseurl. Query and fragment state survive edition changes. Pagination stays put
+when content already uses the requested language. `console-alternates.html`
+emits `hreflang="x-default"` pointing at the Turkish edition (or at the page
+itself when no Turkish edition is registered).
 
 Validate the canonical dictionary before syncing:
 
@@ -163,11 +186,15 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
 `check_i18n.py` rejects duplicate keys and mismatched placeholders; sync runs it before copying.
-`npm run check` runs vocabulary and five-target parity checks; `npm test` runs
-isolated sync/repair checks, asset and registry drift rejection in all five
-targets, missing-target rejection and negative vocabulary fixtures. Run
-`npm run test:console` for the shared English fallback, Turkish adapter and
-Execmap search-language browser regressions (requires installed Chromium).
+`npm run check` runs vocabulary and five-target parity checks (it needs the
+sibling checkouts); `npm test` runs isolated sync/repair checks, asset and
+registry drift rejection in all five targets, stale-file and missing-target
+rejection, the commit safeguards and negative vocabulary fixtures. Run
+`npm run test:console` for the shared English fallback, Turkish adapter,
+explicit-choice navigation, `<html lang>` preservation, highlighting and
+search robustness browser regressions (requires installed Chromium).
+`.github/workflows/ci.yml` runs `check_i18n.py`, `npm test` and
+`npm run test:console` on every push to `main` and on pull requests.
 The typography browser
 regression matrix now includes execmap (15 page types × 5 widths × 2 text sizes).
 No site is published by these commands.

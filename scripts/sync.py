@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-2.0-or-later
 """Synchronize canonical console-theme files to sibling repositories.
 
 Canonical source of truth:
@@ -19,6 +20,11 @@ Usage:
   python3 scripts/sync.py --check      # Check parity without modifying files (exit 1 if diff)
   python3 scripts/sync.py --commit "msg" # Sync and commit in sibling repos
   python3 scripts/sync.py --auto-commit # Sync and commit using console-theme's latest commit msg
+
+Every target is validated before the first file is copied. --check also rejects
+files in a target's assets/console/ that are neither canonical nor listed in
+ALLOWED_EXTRAS. --commit and --auto-commit require every target to be on its
+main branch and commit only the files this script wrote.
 """
 
 import argparse
@@ -42,6 +48,18 @@ DATA_FILES = [
     'console_projects.json',
     'writing_topics.yml',
 ]
+
+# Site-owned files that legitimately live beside the shared assets, relative to
+# the target's assets/console/. Anything else found there is stale or misplaced.
+ALLOWED_EXTRAS = {
+    'kilavuzlar': set(),
+    'syscall': {'syscall.css'},
+    'pin-atlas': set(),
+    'zaryob.github.io': {'bundle.scss', 'site.css'},
+    'execmap': {'COPYING'},
+}
+IGNORED_NAMES = {'.DS_Store'}
+COMMIT_BRANCH = 'main'
 
 
 def get_console_theme_assets():
@@ -76,20 +94,32 @@ def run_git(repo_dir: Path, args: list) -> subprocess.CompletedProcess:
     )
 
 
+def current_branch(repo_dir: Path):
+    """Return the checked-out branch name, or None when detached or not a repository."""
+    res = run_git(repo_dir, ['symbolic-ref', '--quiet', '--short', 'HEAD'])
+    return res.stdout.strip() if res.returncode == 0 and res.stdout.strip() else None
+
+
 def commit_sibling_changes(repo_dir: Path, staged_files: list, commit_msg: str):
-    """Stage and commit specific files in a sibling repo if modified."""
-    status = run_git(repo_dir, ['status', '--porcelain'] + [str(f.relative_to(repo_dir)) for f in staged_files])
+    """Commit only the given files in a sibling repo, leaving any other staged work alone."""
+    paths = [str(f.relative_to(repo_dir)) for f in staged_files]
+    status = run_git(repo_dir, ['status', '--porcelain', '--'] + paths)
     if not status.stdout.strip():
         return False
 
-    run_git(repo_dir, ['add'] + [str(f.relative_to(repo_dir)) for f in staged_files])
-    commit = run_git(repo_dir, ['commit', '-m', commit_msg])
+    add = run_git(repo_dir, ['add', '--'] + paths)
+    # The pathspec limits the commit to these paths even when the index holds unrelated changes.
+    commit = add if add.returncode else run_git(repo_dir, ['commit', '-m', commit_msg, '--'] + paths)
     if commit.returncode == 0:
         print(f"  [git commit] {repo_dir.name}: {commit_msg}")
         return True
     else:
         print(f"  [git error] {repo_dir.name}: {commit.stderr.strip()}")
         return False
+
+
+def differs(src: Path, dst: Path) -> bool:
+    return not dst.is_file() or src.read_bytes() != dst.read_bytes()
 
 
 def main():
@@ -109,31 +139,25 @@ def main():
         sys.exit(f'Invalid shared vocabulary: {error}')
 
     assets = get_console_theme_assets()
-    differences = []
-    updated_files = 0
+    canonical_assets = {asset.as_posix() for asset in assets}
+    commit_msg = None
+    if args.commit:
+        commit_msg = args.commit
+    elif args.auto_commit:
+        commit_msg = f"Sync console theme: {get_latest_commit_message()}"
+    if args.check and commit_msg:
+        sys.exit('--check does not modify or commit anything; drop --commit/--auto-commit.')
 
     # Ensure internal console-theme mirrors (_includes/console/ and _data/console/) stay synced
     internal_pairs = []
     for inc in INCLUDES:
         src = REPO_ROOT / '_includes' / inc
-        dst = REPO_ROOT / '_includes' / 'console' / inc
         if src.is_file():
-            internal_pairs.append((src, dst))
+            internal_pairs.append((src, REPO_ROOT / '_includes' / 'console' / inc))
     for dat in DATA_FILES:
         src = REPO_ROOT / '_data' / dat
-        dst = REPO_ROOT / '_data' / 'console' / dat
         if src.is_file():
-            internal_pairs.append((src, dst))
-
-    for src, dst in internal_pairs:
-        if args.check:
-            if not dst.is_file() or src.read_bytes() != dst.read_bytes():
-                differences.append(str(dst))
-        else:
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            if not dst.is_file() or src.read_bytes() != dst.read_bytes():
-                shutil.copyfile(src, dst)
-                updated_files += 1
+            internal_pairs.append((src, REPO_ROOT / '_data' / 'console' / dat))
 
     # Targets configuration: (name, repo_dir, target_base_dir)
     # Every asset is byte-identical, including English fallbacks and sibling license paths.
@@ -146,63 +170,41 @@ def main():
         ('execmap', args.execmap, args.execmap / 'public'),
     ]
 
-    modified_repos = {}
-
+    # Pass 1: validate every target and plan the copies. Nothing is written here,
+    # so a missing or unsuitable target cannot leave the suite half-synchronized.
+    problems = []
+    extras = []
+    plan = {}
     for name, repo_path, target_base in targets:
         if not repo_path.is_dir():
-            differences.append(f"{name}: directory not found: {repo_path}")
+            problems.append(f"{name}: directory not found: {repo_path}")
             continue
+        if commit_msg:
+            branch = current_branch(repo_path)
+            if branch != COMMIT_BRANCH:
+                problems.append(f"{name}: refusing to commit on {branch or 'a detached HEAD or non-repository'}; check out {COMMIT_BRANCH}: {repo_path}")
+                continue
 
-        repo_files_affected = []
-
-        # 1. assets/console
-        for asset in assets:
-            src = REPO_ROOT / 'assets' / 'console' / asset
-            dst = target_base / 'assets' / 'console' / asset
-            if args.check:
-                if not dst.is_file() or src.read_bytes() != dst.read_bytes():
-                    differences.append(str(dst))
-            else:
-                dst.parent.mkdir(parents=True, exist_ok=True)
-                if not dst.is_file() or src.read_bytes() != dst.read_bytes():
-                    shutil.copyfile(src, dst)
-                    updated_files += 1
-                    repo_files_affected.append(dst)
-
-        # 2. _includes
+        pairs = [(REPO_ROOT / 'assets' / 'console' / asset, target_base / 'assets' / 'console' / asset) for asset in assets]
         for inc in ([] if name == 'execmap' else INCLUDES):
-            src = REPO_ROOT / '_includes' / inc
-            dst = target_base / '_includes' / inc
-            if src.is_file():
-                if args.check:
-                    if not dst.is_file() or src.read_bytes() != dst.read_bytes():
-                        differences.append(str(dst))
-                else:
-                    dst.parent.mkdir(parents=True, exist_ok=True)
-                    if not dst.is_file() or src.read_bytes() != dst.read_bytes():
-                        shutil.copyfile(src, dst)
-                        updated_files += 1
-                        repo_files_affected.append(dst)
-
-        # 3. _data
+            pairs.append((REPO_ROOT / '_includes' / inc, target_base / '_includes' / inc))
         for dat in (['console_projects.json'] if name == 'execmap' else DATA_FILES):
-            src = REPO_ROOT / '_data' / dat
-            dst = target_base / ('console-projects.json' if name == 'execmap' else f'_data/{dat}')
-            if src.is_file():
-                if args.check:
-                    if not dst.is_file() or src.read_bytes() != dst.read_bytes():
-                        differences.append(str(dst))
-                else:
-                    dst.parent.mkdir(parents=True, exist_ok=True)
-                    if not dst.is_file() or src.read_bytes() != dst.read_bytes():
-                        shutil.copyfile(src, dst)
-                        updated_files += 1
-                        repo_files_affected.append(dst)
+            pairs.append((REPO_ROOT / '_data' / dat, target_base / ('console-projects.json' if name == 'execmap' else f'_data/{dat}')))
+        plan[repo_path] = [(src, dst) for src, dst in pairs if src.is_file()]
 
-        if repo_files_affected:
-            modified_repos[repo_path] = repo_files_affected
+        target_assets = target_base / 'assets' / 'console'
+        if target_assets.is_dir():
+            for found in sorted(target_assets.rglob('*')):
+                relative = found.relative_to(target_assets).as_posix()
+                if not found.is_file() or found.name in IGNORED_NAMES:
+                    continue
+                if relative not in canonical_assets and relative not in ALLOWED_EXTRAS[name]:
+                    extras.append(f"{found} (not canonical and not in ALLOWED_EXTRAS['{name}'])")
 
     if args.check:
+        differences = [str(dst) for src, dst in internal_pairs if differs(src, dst)] + problems
+        differences += [str(dst) for pairs in plan.values() for src, dst in pairs if differs(src, dst)]
+        differences += extras
         if differences:
             print("Console theme differences found:")
             for diff in differences:
@@ -212,22 +214,45 @@ def main():
             print("✓ All 5 configured suite repositories match the shared asset and adapter packaging contract.")
             sys.exit(0)
 
-    if differences:
-        print("Missing configured repositories:\n" + "\n".join(differences))
+    if problems:
+        print("Nothing was copied. Unusable targets:\n" + "\n".join(f"  - {problem}" for problem in problems))
         sys.exit(1)
-    print(f"✓ Synchronized console-theme: {updated_files} file(s) updated across 5 configured repositories.")
 
-    # Git commit handling if requested
-    commit_msg = None
-    if args.commit:
-        commit_msg = args.commit
-    elif args.auto_commit:
-        latest = get_latest_commit_message()
-        commit_msg = f"Sync console theme: {latest}"
+    # Pass 2: copy.
+    updated_files = 0
+    for src, dst in internal_pairs:
+        if differs(src, dst):
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(src, dst)
+            updated_files += 1
+
+    modified_repos = {}
+    for repo_path, pairs in plan.items():
+        repo_files_affected = []
+        for src, dst in pairs:
+            if differs(src, dst):
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(src, dst)
+                updated_files += 1
+                repo_files_affected.append(dst)
+        if repo_files_affected:
+            modified_repos[repo_path] = repo_files_affected
+
+    print(f"✓ Synchronized console-theme: {updated_files} file(s) updated across 5 configured repositories.")
+    if extras:
+        # Never deleted automatically: remove them by hand or list them in ALLOWED_EXTRAS.
+        print("Unexpected files left in place (--check will fail until resolved):")
+        for extra in extras:
+            print(f"  - {extra}")
 
     if commit_msg:
+        failed = False
         for repo_path, files in modified_repos.items():
-            commit_sibling_changes(repo_path, files, commit_msg)
+            status = run_git(repo_path, ['status', '--porcelain', '--'] + [str(f.relative_to(repo_path)) for f in files])
+            if status.stdout.strip() and not commit_sibling_changes(repo_path, files, commit_msg):
+                failed = True
+        if failed:
+            sys.exit(1)
 
 
 if __name__ == '__main__':

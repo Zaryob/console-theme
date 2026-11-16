@@ -185,7 +185,12 @@ const stickyState = (page, where) => page.evaluate(where => {
     const copy = span.querySelector('.console-copy').getBoundingClientRect(), b = span.getBoundingClientRect(), h = document.querySelector('.console-header').getBoundingClientRect();
     const pre = block.querySelector('pre'); pre.scrollLeft = 300;
     const moved = Math.abs(span.querySelector('.console-copy').getBoundingClientRect().left - copy.left) > 0.5;
-    resolve({under: Math.round(copy.top - h.bottom), inside: copy.top >= b.top && copy.bottom <= b.bottom + 0.5, visible: copy.bottom <= innerHeight, moved, floating: Boolean(span.querySelector('[data-console-floating]'))});
+    // The element that sticks (group, bar or header), how far below the page header it sits and
+    // how much of that space its paper ring leaves uncovered: code must never show between the two.
+    const stuck = span.querySelector('[data-console-floating]');
+    const ring = stuck && stuck.matches('.console-code-actions') ? parseFloat(getComputedStyle(stuck).getPropertyValue('--console-code-ring')) || 0 : 0;
+    const gap = stuck ? stuck.getBoundingClientRect().top - h.bottom : null;
+    resolve({gap: gap === null ? null : Math.round(gap * 100) / 100, uncovered: gap === null ? null : Math.max(0, Math.round((gap - ring) * 100) / 100), under: Math.round(copy.top - h.bottom), inside: copy.top >= b.top && copy.bottom <= b.bottom + 0.5, visible: copy.bottom <= innerHeight, moved, floating: Boolean(span.querySelector('[data-console-floating]'))});
   }, 200));
 }, where);
 
@@ -198,6 +203,7 @@ for (const width of [390, 1440]) {
     const middle = await stickyState(page, 'middle');
     assert.ok(middle.under >= 0 && middle.under <= 12, `Copy sits ${middle.under}px under the header`);
     assert.deepEqual([middle.inside, middle.visible, middle.moved, middle.floating], [true, true, false, true]);
+    assert.deepEqual({gap: middle.gap, uncovered: middle.uncovered}, {gap: 4, uncovered: 0}, 'the paper ring of the group meets the page header: no code shows above it');
     const end = await stickyState(page, 'end');
     assert.equal(end.inside, true, 'Copy stops at the bottom edge of its block');
     const short = await page.evaluate(() => { const g = document.getElementById('short').closest('.console-code').querySelector('.console-code-actions'); return getComputedStyle(g).position; });
@@ -211,6 +217,7 @@ test('a site code bar or code header holding Copy sticks through a tall block', 
   const middle = await stickyState(page, 'middle');
   assert.ok(middle.under >= 0 && middle.under <= 12, `bar Copy sits ${middle.under}px under the header`);
   assert.deepEqual([middle.inside, middle.visible, middle.floating], [true, true, true]);
+  assert.equal(middle.gap, 0, 'the bar sticks flush to the page header, neither apart nor overlapping');
   assert.equal((await stickyState(page, 'end')).inside, true, 'the bar stops at the bottom edge of its block');
 
   const head = await fixture(t, {width: 1440, body: `<style>.console-site .console-copy{top:-40px}</style>${header}<div class="site-block"><div class="site-head" style="display:flex;min-height:44px;padding-right:100px;background:var(--surface)"><span>file.c</span></div><pre id="headed"><code>${tallCode}</code></pre><button type="button" style="height:40px">fold</button></div><p style="height:1200px">after</p>`});
@@ -219,5 +226,6 @@ test('a site code bar or code header holding Copy sticks through a tall block', 
   const gap = await head.evaluate(() => { const h = document.querySelector('.site-head').getBoundingClientRect(), c = document.querySelector('.console-copy').getBoundingClientRect(); return {inHead: c.top >= h.top && c.bottom <= h.bottom + 0.5}; });
   assert.ok(headed.under >= 0 && headed.under <= 12, `header Copy sits ${headed.under}px under the page header`);
   assert.deepEqual([headed.inside, headed.visible, headed.floating, gap.inHead], [true, true, true, true]);
+  assert.equal(headed.gap, 0, 'the code header sticks flush to the page header, neither apart nor overlapping');
   assert.equal((await stickyState(head, 'end')).inside, true, 'Copy stays inside the block at its end');
 });

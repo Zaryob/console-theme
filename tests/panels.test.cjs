@@ -9,10 +9,11 @@ let browser;
 before(async () => { browser = await chromium.launch({executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined}); });
 after(async () => { await browser?.close(); });
 
-async function fixture(t, {body, width=390, height=844, textScale=1, theme='dark', mobile=width<768}) {
+async function fixture(t, {body, width=390, height=844, textScale=1, theme='dark', mobile=width<768, init}) {
   const context = await browser.newContext({viewport:{width,height},isMobile:mobile,hasTouch:mobile});
   t.after(() => context.close());
   const page = await context.newPage();
+  if (init) await page.addInitScript(init);
   const errors=[];
   page.on('pageerror',error=>errors.push(error.message));
   await page.route('http://console-panels.test/**',async route=>{
@@ -117,4 +118,58 @@ test('desktop keeps the dropdown project list and never locks the page', async t
   const start = await p.evaluate(() => scrollY);
   await p.mouse.move(700, 800); await p.mouse.wheel(0, 300); await p.waitForTimeout(300);
   assert.ok(await p.evaluate(() => scrollY) > start, 'desktop page still scrolls');
+});
+
+// Safari on iPhone keeps the layout viewport when its keyboard opens; only visualViewport shrinks.
+// Stand in for it so the keyboard can be opened and closed from the test.
+const keyboardStub = () => {
+  // Defined before theme.js runs, as Safari provides it.
+  const target = new EventTarget();
+  const state = {height: innerHeight, offsetTop: 0, scale: 1};
+  for (const key of ['height', 'offsetTop', 'scale']) Object.defineProperty(target, key, {get: () => state[key]});
+  Object.defineProperty(target, 'width', {get: () => innerWidth});
+  Object.defineProperty(window, 'visualViewport', {value: target, configurable: true});
+  window.setKeyboard = height => { state.height = innerHeight - height; target.dispatchEvent(new Event('resize')); return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); };
+};
+const searchPage = `${header.replace('<div class="console-header-actions">', '<div class="console-header-actions"><button class="console-search-compact" type="button" data-console-search-compact aria-label="Search">/</button>')}<main><div style="height:2000px"></div></main>`;
+
+test('the search dialog and the phone menu end above an on-screen keyboard and are unchanged without one', async t => {
+  const p = await fixture(t, {body: searchPage, init: keyboardStub});
+  await p.evaluate(() => window.setKeyboard(0));
+  const geometry = () => p.evaluate(() => {
+    const box = selector => { const el = document.querySelector(selector); return el && el.getClientRects().length ? el.getBoundingClientRect().toJSON() : null; };
+    return {inset: getComputedStyle(document.documentElement).getPropertyValue('--console-keyboard-inset').trim(), dialog: box('.console-search[open]'), input: box('.console-search[open] input'), first: box('.console-search[open] .console-search__results li'), nav: box('#console-navigation.is-open')};
+  });
+  assert.equal((await geometry()).inset, '0px');
+  await tapOn(p, '[data-console-menu]');
+  const menuWithout = (await geometry()).nav;
+  await p.evaluate(() => window.setKeyboard(320));
+  const menuWith = await geometry();
+  assert.equal(menuWith.inset, '320px');
+  assert.ok(menuWith.nav.bottom <= 844 - 320 + 0.5, `menu ends at ${menuWith.nav.bottom}, keyboard starts at ${844 - 320}`);
+  assert.equal(menuWith.nav.top, menuWithout.top);
+  await p.evaluate(() => window.setKeyboard(0));
+  assert.deepEqual((await geometry()).nav, menuWithout, 'closing the keyboard restores the panel');
+  await tapOn(p, '[data-console-menu]');
+
+  await tapOn(p, '[data-console-search-compact]');
+  const fill = () => p.evaluate(() => { const list = document.querySelector('.console-search__results'); list.innerHTML = Array.from({length: 30}, (_, i) => `<li><a href="#r${i}"><small>Post</small>Result ${i}</a></li>`).join(''); });
+  await fill();
+  const searchWithout = await geometry();
+  await p.evaluate(() => window.setKeyboard(320));
+  const searchWith = await geometry();
+  const visible = 844 - 320;
+  assert.ok(searchWith.dialog.bottom <= visible + 0.5, `dialog ends at ${searchWith.dialog.bottom}, keyboard starts at ${visible}`);
+  assert.ok(searchWith.input.top >= searchWith.dialog.top && searchWith.input.bottom <= visible, 'the field stays in view');
+  assert.ok(searchWith.first.bottom <= visible, 'the first result stays in view');
+  assert.equal(searchWith.input.top, searchWithout.input.top, 'the field does not move');
+  assert.equal(await p.evaluate(() => { const list = document.querySelector('.console-search__results'); return list.scrollHeight > list.clientHeight; }), true, 'the other results scroll inside the list');
+  await p.evaluate(() => window.setKeyboard(0));
+  assert.deepEqual(await geometry(), searchWithout, 'closing the keyboard restores the dialog');
+});
+
+test('a desktop window without a keyboard gets no inset', async t => {
+  const p = await fixture(t, {body: searchPage, width: 1440, height: 900});
+  assert.equal(await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--console-keyboard-inset').trim()), '0px');
+  assert.equal(await p.evaluate(() => document.documentElement.hasAttribute('data-console-keyboard')), false);
 });

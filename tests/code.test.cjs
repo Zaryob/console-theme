@@ -109,6 +109,37 @@ test('a line that fits once Copy moves to its own row keeps that row and never s
   assert.equal(long.fadeEnd, 0, 'no fade: no code is hidden once the row is in place');
 });
 
+for (const [into, expected] of [[2, true], [-2, false]]) {
+  test(`a line that ends ${Math.abs(into)}px ${into > 0 ? 'inside' : 'short of'} the padding kept for Copy ${expected ? 'gets' : 'does not need'} the action row`, async t => {
+    // Size the block from the measured line so its end lands a set distance from the 84px end
+    // padding: a few pixels into that padding already put a character under Copy.
+    const text = 'x'.repeat(60);
+    const probe = await fixture(t, {body: `<pre><code>${text}</code></pre>`, width: 1440});
+    const width = await probe.evaluate(() => { const range = document.createRange(); range.selectNodeContents(document.querySelector('pre code')); return range.getBoundingClientRect().width; });
+    // Border 1px each side, 18px start padding, 84px end padding.
+    const box = 1 + 18 + width + 84 - into + 1;
+    const page = await fixture(t, {body: `<div style="width:${box}px"><pre id="edge"><code>${text}</code></pre></div>`, width: 1440});
+    const frames = await page.evaluate(async () => { const seen = [];
+      for (let i = 0; i < 12; i++) { await new Promise(requestAnimationFrame); seen.push(document.querySelector('.console-code').classList.contains('console-code--actions-row')); }
+      return seen; });
+    assert.deepEqual(frames, frames.map(() => expected), 'the decision holds without flipping');
+    const [edge] = await state(page);
+    assert.equal(Boolean(edge.toggle), expected);
+    assert.equal(edge.covered, false, 'Copy never covers code');
+  });
+}
+
+test('Copy wider than the end padding beside the first line still keeps code out from under it', async t => {
+  // A longer label (as after copying, or in another language) widens Copy past the 84px padding.
+  const text = 'x'.repeat(60);
+  const probe = await fixture(t, {body: `<pre><code>${text}</code></pre>`, width: 1440});
+  const width = await probe.evaluate(() => { const range = document.createRange(); range.selectNodeContents(document.querySelector('pre code')); return range.getBoundingClientRect().width; });
+  const page = await fixture(t, {body: `<style>.console-copy{min-width:140px}</style><div style="width:${1 + 18 + width + 100 + 1}px"><pre id="edge"><code>${text}</code></pre></div>`, width: 1440});
+  const [edge] = await state(page);
+  assert.ok(edge.toggle, 'the line runs under the wide Copy, so the block gets the row');
+  assert.equal(edge.covered, false);
+});
+
 test('the toggle and fade follow language and theme, and resizing rechecks overflow', async t => {
   const page = await fixture(t, {body: blocks, language: 'tr', theme: 'light'});
   let [long] = await state(page);

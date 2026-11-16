@@ -93,6 +93,21 @@ for(const width of [320,390]) {
   }
 }
 
+test('header controls are named by their visible text first, with the action as hidden text',async t=>{
+  const include=await readFile(path.join(__dirname,'..','_includes','console-header.html'),'utf8');
+  for(const control of [/<summary[^>]*aria-controls="console-project-menu"[^>]*>/,/<summary[^>]*aria-controls="console-topic-menu"[^>]*>/,/<button class="console-search-open"[^>]*>/]) {
+    const tag=include.match(control);
+    assert.ok(tag,`missing ${control}`);
+    assert.doesNotMatch(tag[0],/aria-label/,`${tag[0]} replaces its visible text with an aria-label`);
+  }
+  const page=await fixture(t,{script:true,width:390,body:'<details class="console-projects" data-console-projects><summary role="button" aria-controls="console-project-menu"><span class="console-project-path"><span class="console-prompt-separator">~/</span>wire</span><span class="console-sr-only"> — <span>Switch project</span></span><span class="console-prompt-dollar" aria-hidden="true">$</span></summary><nav class="console-project-menu" id="console-project-menu"><a href="/">Home</a></nav></details>'});
+  const summary=page.getByRole('button',{name:'~/wire — Switch project',exact:true});
+  assert.equal(await summary.count(),1);
+  assert.equal(await summary.getAttribute('aria-describedby'),null,'the path is already in the name');
+  const hidden=await page.locator('.console-sr-only').boundingBox();
+  assert.ok(hidden.width<=1&&hidden.height<=1);
+});
+
 test('a compact declaration scrolls without covering the code or its copy action',async t=>{
   const declaration='long_result_type example_call(const char *first_argument, unsigned long second_argument);';
   for(const textScale of [1,2]) {

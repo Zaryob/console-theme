@@ -173,3 +173,29 @@ test('a desktop window without a keyboard gets no inset', async t => {
   assert.equal(await p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--console-keyboard-inset').trim()), '0px');
   assert.equal(await p.evaluate(() => document.documentElement.hasAttribute('data-console-keyboard')), false);
 });
+
+// The shared header's search button, as the include renders it (Liquid tags and the icon dropped).
+const includeSearchButton = require('node:fs').readFileSync(path.join(__dirname, '..', '_includes', 'console-header.html'), 'utf8')
+  .match(/<button class="console-search-open"[\s\S]*?<\/button>/)[0].replace(/\{%[\s\S]*?%\}|\{\{[\s\S]*?\}\}/g, '');
+const hintsPage = `${header.replace('<button type="button" id="last-tool">Last</button>', includeSearchButton)}<main><div style="height:400px"></div></main><footer class="suite-footer" id="site-footer"><span class="console-hints"><kbd>/</kbd> search <kbd>Tab</kbd> navigate</span></footer>`;
+
+for (const touch of [true, false]) {
+  test(`keyboard hints are ${touch ? 'dropped on a touch-only device' : 'kept with a fine pointer'}, and never join the search button's name`, async t => {
+    const p = await fixture(t, {body: hintsPage, width: touch ? 390 : 1440, height: 844, mobile: touch});
+    assert.equal(await p.evaluate(() => matchMedia('(hover: none) and (pointer: coarse)').matches), touch);
+    if (touch) await tapOn(p, '[data-console-menu]');
+    const shown = () => p.evaluate(() => [...document.querySelectorAll('kbd, .console-key-hint, .console-hints')].filter(e => e.getClientRects().length).map(e => e.textContent.trim()));
+    const search = p.locator('.console-search-open');
+    assert.ok(await search.isVisible());
+    assert.equal(await search.getAttribute('aria-keyshortcuts'), '/ Control+K Meta+K');
+    assert.equal(await search.evaluate(e => e.querySelector('kbd').getAttribute('aria-hidden')), 'true');
+    // The include's own text (no vocabulary loaded here): the visual "/" stays out of the name.
+    assert.equal(await search.ariaSnapshot(), '- button "Ara — Zaryob içerikleri"');
+    assert.deepEqual(await shown(), touch ? [] : ['/', '/ search Tab navigate', '/', 'Tab']);
+    await search.click();
+    const close = p.locator('dialog[open] [data-search-close]');
+    assert.equal(await close.getAttribute('aria-label'), 'Close search');
+    assert.equal((await close.innerText()).trim(), touch ? 'Close' : 'Esc / Close');
+    assert.deepEqual(await shown(), touch ? [] : ['/', '/ search Tab navigate', '/', 'Tab', 'Esc /']);
+  });
+}

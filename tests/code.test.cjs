@@ -32,7 +32,9 @@ async function fixture(t, {body, width=390, textScale=1, theme='dark', language=
   return page;
 }
 
-const longLine = 'const result = compute_the_answer(first_argument, second_argument, third_argument, fourth_argument, fifth_argument, sixth_argument); // a trailing comment that runs on';
+// Long enough to hide code in a 1440px window whatever the platform's glyph widths: a shorter
+// line hid code on macOS but fitted on Linux once Copy had its own row.
+const longLine = 'const result = compute_the_answer(first_argument, second_argument, third_argument, fourth_argument, fifth_argument, sixth_argument, seventh_argument, eighth_argument); // a trailing comment that runs on and on';
 const blocks = `<pre id="long"><code>${longLine}\nshort();</code></pre><pre id="short"><code>ok();</code></pre>`;
 const state = page => page.evaluate(() => [...document.querySelectorAll('.console-code')].map(block => {
   const pre = block.querySelector('pre'), toggle = block.querySelector('.console-code-toggle'), copy = block.querySelector('.console-copy');
@@ -83,6 +85,29 @@ for (const [width, textScale] of [[390, 1], [320, 2], [1440, 1]]) {
     assert.equal(long.toggle.pressed, 'false');
   });
 }
+
+test('a line that fits once Copy moves to its own row keeps that row and never sits under Copy', async t => {
+  // The line reaches into the end padding kept for Copy but fits once Copy has its own row
+  // and that padding drops. Glyph widths differ between platforms, so size the line from the
+  // measured character width rather than a fixed length.
+  const probe = await fixture(t, {body: blocks, width: 1440});
+  const {advance, box} = await probe.evaluate(() => {
+    const text = document.querySelector('#short code').firstChild; const range = document.createRange();
+    range.setStart(text, 0); range.setEnd(text, text.length);
+    const pre = document.getElementById('long');
+    return {advance: range.getBoundingClientRect().width / text.length, box: pre.clientWidth};
+  });
+  // Text starts after 18px of padding; Copy keeps 84px at the end without the row, 18px with it.
+  const length = Math.floor((box - 18 - 51) / advance);
+  const page = await fixture(t, {body: `<pre id="long"><code>${'x'.repeat(length)}</code></pre>`, width: 1440});
+  const frames = await page.evaluate(async () => { const seen = [];
+    for (let i = 0; i < 12; i++) { await new Promise(requestAnimationFrame); seen.push(document.querySelector('.console-code').classList.contains('console-code--actions-row')); }
+    return seen; });
+  assert.deepEqual(frames, frames.map(() => true), 'Copy keeps its own row without flipping back');
+  const [long] = await state(page);
+  assert.equal(long.covered, false, 'Copy never covers code');
+  assert.equal(long.fadeEnd, 0, 'no fade: no code is hidden once the row is in place');
+});
 
 test('the toggle and fade follow language and theme, and resizing rechecks overflow', async t => {
   const page = await fixture(t, {body: blocks, language: 'tr', theme: 'light'});

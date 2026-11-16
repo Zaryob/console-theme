@@ -93,6 +93,43 @@ for(const width of [320,390]) {
   }
 }
 
+test('header controls are named by their visible text first, with the action as hidden text',async t=>{
+  const include=await readFile(path.join(__dirname,'..','_includes','console-header.html'),'utf8');
+  for(const control of [/<summary[^>]*aria-controls="console-project-menu"[^>]*>/,/<summary[^>]*aria-controls="console-topic-menu"[^>]*>/,/<button class="console-search-open"[^>]*>/]) {
+    const tag=include.match(control);
+    assert.ok(tag,`missing ${control}`);
+    assert.doesNotMatch(tag[0],/aria-label/,`${tag[0]} replaces its visible text with an aria-label`);
+  }
+  const page=await fixture(t,{script:true,width:390,body:'<details class="console-projects" data-console-projects><summary role="button" aria-controls="console-project-menu"><span class="console-project-path"><span class="console-prompt-separator">~/</span>wire</span><span class="console-sr-only"> — <span>Switch project</span></span><span class="console-prompt-dollar" aria-hidden="true">$</span></summary><nav class="console-project-menu" id="console-project-menu"><a href="/">Home</a></nav></details>'});
+  const summary=page.getByRole('button',{name:'~/wire — Switch project',exact:true});
+  assert.equal(await summary.count(),1);
+  assert.equal(await summary.getAttribute('aria-describedby'),null,'the path is already in the name');
+  const hidden=await page.locator('.console-sr-only').boundingBox();
+  assert.ok(hidden.width<=1&&hidden.height<=1);
+});
+
+for(const width of [390,1180]) {
+  test(`without JavaScript the compact header drops a tools row that has nothing to show at ${width}px`,async t=>{
+    const tools=extra=>`<nav class="console-nav" id="console-navigation">${extra.nav||''}<div class="console-tools"><button class="console-search-open" type="button">Search</button><label class="console-theme"><span>Theme</span><select><option>System</option></select></label>${extra.tools||''}</div></nav>`;
+    const headerWith=extra=>`<header class="console-header"><div class="console-header__inner"><div class="console-identity"><a class="console-brand" href="/">zaryob</a></div>${tools(extra)}</div></header>`;
+    const measure=async(body,js)=>{
+      const page=await fixture(t,{body,width});
+      if(!js)await page.evaluate(()=>document.documentElement.classList.remove('console-js'));
+      return page.evaluate(()=>({header:document.querySelector('.console-header').getBoundingClientRect().height,tools:getComputedStyle(document.querySelector('.console-tools')).display,nav:getComputedStyle(document.querySelector('.console-nav')).display}));
+    };
+    const bare=await measure(headerWith({}),false);
+    assert.equal(bare.tools,'none');
+    assert.equal(bare.nav,'none','a navigation that only held the empty row goes too');
+    const withLinks=await measure(headerWith({nav:'<a href="/a">Posts</a>'}),false);
+    assert.equal(withLinks.tools,'none');
+    assert.notEqual(withLinks.nav,'none','navigation links stay');
+    const withNote=await measure(headerWith({tools:'<span class="console-meta">Content: Turkish</span>'}),false);
+    assert.notEqual(withNote.tools,'none','a row with visible content stays');
+    const scripted=await measure(headerWith({}),true);
+    assert.notEqual(scripted.tools,'none','with JavaScript the row keeps its controls');
+  });
+}
+
 test('a compact declaration scrolls without covering the code or its copy action',async t=>{
   const declaration='long_result_type example_call(const char *first_argument, unsigned long second_argument);';
   for(const textScale of [1,2]) {

@@ -108,6 +108,28 @@ test('header controls are named by their visible text first, with the action as 
   assert.ok(hidden.width<=1&&hidden.height<=1);
 });
 
+for(const width of [390,1180]) {
+  test(`without JavaScript the compact header drops a tools row that has nothing to show at ${width}px`,async t=>{
+    const tools=extra=>`<nav class="console-nav" id="console-navigation">${extra.nav||''}<div class="console-tools"><button class="console-search-open" type="button">Search</button><label class="console-theme"><span>Theme</span><select><option>System</option></select></label>${extra.tools||''}</div></nav>`;
+    const headerWith=extra=>`<header class="console-header"><div class="console-header__inner"><div class="console-identity"><a class="console-brand" href="/">zaryob</a></div>${tools(extra)}</div></header>`;
+    const measure=async(body,js)=>{
+      const page=await fixture(t,{body,width});
+      if(!js)await page.evaluate(()=>document.documentElement.classList.remove('console-js'));
+      return page.evaluate(()=>({header:document.querySelector('.console-header').getBoundingClientRect().height,tools:getComputedStyle(document.querySelector('.console-tools')).display,nav:getComputedStyle(document.querySelector('.console-nav')).display}));
+    };
+    const bare=await measure(headerWith({}),false);
+    assert.equal(bare.tools,'none');
+    assert.equal(bare.nav,'none','a navigation that only held the empty row goes too');
+    const withLinks=await measure(headerWith({nav:'<a href="/a">Posts</a>'}),false);
+    assert.equal(withLinks.tools,'none');
+    assert.notEqual(withLinks.nav,'none','navigation links stay');
+    const withNote=await measure(headerWith({tools:'<span class="console-meta">Content: Turkish</span>'}),false);
+    assert.notEqual(withNote.tools,'none','a row with visible content stays');
+    const scripted=await measure(headerWith({}),true);
+    assert.notEqual(scripted.tools,'none','with JavaScript the row keeps its controls');
+  });
+}
+
 test('a compact declaration scrolls without covering the code or its copy action',async t=>{
   const declaration='long_result_type example_call(const char *first_argument, unsigned long second_argument);';
   for(const textScale of [1,2]) {

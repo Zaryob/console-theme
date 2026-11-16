@@ -142,3 +142,51 @@ test('a block whose Copy floats over a site header puts the toggle in that heade
     return {parent: toggle.parentElement.className, overlapsDownload: t.left < download.right && t.right > download.left, overlapsCopy: t.right > copy.left && t.left < copy.right && t.bottom > copy.top && t.top < copy.bottom}; });
   assert.deepEqual(placed, {parent: 'site-head', overlapsDownload: false, overlapsCopy: false});
 });
+
+const tallCode = Array.from({length: 120}, (_, i) => i === 3 ? longLine : `line_${i}();`).join('\n');
+const header = '<header class="console-header"><div class="console-header__inner">header</div></header>';
+const stickyState = (page, where) => page.evaluate(where => {
+  const block = document.querySelector('[data-tall]'), span = block.closest('.site-block') || block;
+  const r = span.getBoundingClientRect();
+  const top = scrollY + r.top;
+  scrollTo({top: where === 'middle' ? top + r.height / 2 - innerHeight / 2 : top + r.height - 120, behavior: 'instant'});
+  return new Promise(resolve => setTimeout(() => {
+    const copy = span.querySelector('.console-copy').getBoundingClientRect(), b = span.getBoundingClientRect(), h = document.querySelector('.console-header').getBoundingClientRect();
+    const pre = block.querySelector('pre'); pre.scrollLeft = 300;
+    const moved = Math.abs(span.querySelector('.console-copy').getBoundingClientRect().left - copy.left) > 0.5;
+    resolve({under: Math.round(copy.top - h.bottom), inside: copy.top >= b.top && copy.bottom <= b.bottom + 0.5, visible: copy.bottom <= innerHeight, moved, floating: Boolean(span.querySelector('[data-console-floating]'))});
+  }, 200));
+}, where);
+
+for (const width of [390, 1440]) {
+  test(`Copy and the toggle stay under the sticky header through a tall block at ${width}px`, async t => {
+    const page = await fixture(t, {width, body: `${header}<pre id="short"><code>ok();</code></pre><pre id="tall" data-tall><code>${tallCode}</code></pre><p style="height:1200px">after</p>`});
+    await page.evaluate(() => document.getElementById('tall').closest('.console-code').setAttribute('data-tall', ''));
+    const order = await page.evaluate(() => [...document.querySelector('[data-tall]').querySelectorAll('button')].map(b => b.className.split(' ')[0]));
+    assert.deepEqual(order, ['console-code-toggle', 'console-copy'], 'Tab reaches the toggle, then Copy');
+    const middle = await stickyState(page, 'middle');
+    assert.ok(middle.under >= 0 && middle.under <= 12, `Copy sits ${middle.under}px under the header`);
+    assert.deepEqual([middle.inside, middle.visible, middle.moved, middle.floating], [true, true, false, true]);
+    const end = await stickyState(page, 'end');
+    assert.equal(end.inside, true, 'Copy stops at the bottom edge of its block');
+    const short = await page.evaluate(() => { const g = document.getElementById('short').closest('.console-code').querySelector('.console-code-actions'); return getComputedStyle(g).position; });
+    assert.notEqual(short, 'sticky', 'a short block keeps its buttons in place');
+  });
+}
+
+test('a site code bar or code header holding Copy sticks through a tall block', async t => {
+  const bar = `<script>document.addEventListener('DOMContentLoaded', () => document.querySelectorAll('#barred').forEach(pre => { const block = pre.closest('.console-code'); const bar = document.createElement('div'); bar.className = 'site-bar'; bar.style.cssText = 'display:flex;background:var(--paper)'; bar.append(document.createTextNode('bash'), block.querySelector('.console-copy')); block.prepend(bar); block.setAttribute('data-tall', ''); }));</script>`;
+  const page = await fixture(t, {width: 1440, body: `<style>.site-bar .console-copy{position:static;margin-inline-start:auto}</style>${header}${bar}<pre id="barred"><code>${tallCode}</code></pre><p style="height:1200px">after</p>`});
+  const middle = await stickyState(page, 'middle');
+  assert.ok(middle.under >= 0 && middle.under <= 12, `bar Copy sits ${middle.under}px under the header`);
+  assert.deepEqual([middle.inside, middle.visible, middle.floating], [true, true, true]);
+  assert.equal((await stickyState(page, 'end')).inside, true, 'the bar stops at the bottom edge of its block');
+
+  const head = await fixture(t, {width: 1440, body: `<style>.console-site .console-copy{top:-40px}</style>${header}<div class="site-block"><div class="site-head" style="display:flex;min-height:44px;padding-right:100px;background:var(--surface)"><span>file.c</span></div><pre id="headed"><code>${tallCode}</code></pre><button type="button" style="height:40px">fold</button></div><p style="height:1200px">after</p>`});
+  await head.evaluate(() => document.getElementById('headed').closest('.console-code').setAttribute('data-tall', ''));
+  const headed = await stickyState(head, 'middle');
+  const gap = await head.evaluate(() => { const h = document.querySelector('.site-head').getBoundingClientRect(), c = document.querySelector('.console-copy').getBoundingClientRect(); return {inHead: c.top >= h.top && c.bottom <= h.bottom + 0.5}; });
+  assert.ok(headed.under >= 0 && headed.under <= 12, `header Copy sits ${headed.under}px under the page header`);
+  assert.deepEqual([headed.inside, headed.visible, headed.floating, gap.inHead], [true, true, true, true]);
+  assert.equal((await stickyState(head, 'end')).inside, true, 'Copy stays inside the block at its end');
+});

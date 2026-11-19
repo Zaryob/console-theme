@@ -64,7 +64,7 @@ for (const pagefind of [true, false]) {
         assert.equal(await result.getAttribute('lang'), 'en');
         const address = new URL(await result.getAttribute('href'));
         assert.equal(address.pathname, '/execmap/rehberler/proof.html');
-        assert.equal(address.searchParams.get('lang'), language === 'tr' ? 'tr' : 'en');
+        assert.equal(address.searchParams.has('lang'), false);
         assert.equal(address.searchParams.get('highlight'), 'elfproof');
         assert.doesNotMatch(await dialog.textContent(), /\{(?:count|query)\}/);
         if (pagefind && language !== 'tr') assert.equal(await dialog.locator('[role="status"]').textContent(), '1 content results');
@@ -185,7 +185,7 @@ test('the interface language never rewrites <html lang>; search still follows th
   await dialog.locator('input').fill('elfproof');
   const result = dialog.locator('a', { hasText: 'English ELF proof' });
   await result.waitFor();
-  assert.equal(new URL(await result.getAttribute('href')).searchParams.get('lang'), 'en');
+  assert.equal(new URL(await result.getAttribute('href')).searchParams.has('lang'), false);
   assert.equal(await dialog.getAttribute('lang'), 'en');
   assert.deepEqual(await page.evaluate(() => [window.indexLanguages, window.mergedLanguage]), [['en'], 'en']);
   assert.equal((await state()).lang, 'tr');

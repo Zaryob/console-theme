@@ -58,7 +58,7 @@ ALLOWED_EXTRAS = {
     'kilavuzlar': set(),
     'syscall': {'syscall.css'},
     'pin-atlas': set(),
-    'zaryob.github.io': {'bundle.scss', 'site.css'},
+    'zaryob.github.io': {'bundle.scss', 'site.css', 'home-picks.js'},
     'execmap': {'COPYING'},
     'wire': {'COPYING'},
 }

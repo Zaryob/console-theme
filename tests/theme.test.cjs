@@ -92,6 +92,10 @@ const header = `<header class="console-header"><details data-console-projects><s
   <button data-console-menu aria-expanded="false">Menu</button><nav id="console-navigation"></nav>
   <button data-console-search data-suite-root="/">Search</button>
   <select data-console-language><option value="tr">TR</option><option value="en">EN</option></select></header>`;
+const dropdownHeader = `<header class="console-header"><div class="console-tools">
+  <label class="console-theme"><span><span>Theme</span></span><select data-console-theme aria-label="Theme"><option value="system">System</option><option value="dark">Dark</option><option value="light">Light</option></select></label>
+  <label class="console-language"><span><span>Language</span></span><select data-console-language aria-label="Language"><option value="tr">TR</option><option value="en">EN</option></select></label>
+</div></header>`;
 const pages = {
   '/': `<!doctype html><html lang="tr"><head><meta charset="utf-8"><link rel="alternate" hreflang="tr" href="/"><link rel="alternate" hreflang="en" href="/en/"><link rel="alternate" hreflang="x-default" href="/">${scripts}</head><body>${header}
     <aside data-content-language="tr"><span data-translation-missing hidden>missing</span><a href="/en/?lang=en" data-translation-lang="en">English</a></aside>
@@ -102,6 +106,7 @@ const pages = {
     <aside data-content-language="tr"><span data-translation-missing hidden>missing</span></aside>
     <main><article><p>needle in prose</p><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 20"><text x="0" y="15">needle pin</text></svg>
     <pre><code>needle()</code></pre></article></main></body></html>`,
+  '/dropdowns/': `<!doctype html><html lang="tr"><head><meta charset="utf-8">${scripts}</head><body>${dropdownHeader}</body></html>`,
   '/execmap/rehberler/proof.html': '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>proof</title></head><body>proof</body></html>',
 };
 async function open(t, { locale = 'en-US', stored, pagefind = true, records = [] } = {}) {
@@ -278,5 +283,45 @@ test('focused results show an outline, copy feedback is announced and reduced mo
   await page.keyboard.press('ArrowDown');
   const outline = await page.evaluate(() => { const style = getComputedStyle(document.activeElement); return [document.activeElement.tagName, style.outlineStyle, style.outlineWidth]; });
   assert.deepEqual(outline, ['A', 'solid', '2px']);
+  assert.deepEqual(errors, []);
+});
+
+test('clicking the theme and language controls opens custom console-styled dropdown menus', async t => {
+  const { page, errors } = await open(t);
+  await page.goto('http://console-contract.test/dropdowns/');
+  await settle(page);
+
+  const themeControl = page.locator('.console-theme');
+  const langControl = page.locator('.console-language');
+  assert.equal(await themeControl.locator('.console-dropdown-button').count(), 1);
+  assert.equal(await langControl.locator('.console-dropdown-button').count(), 1);
+
+  const themeBtn = themeControl.locator('.console-dropdown-button');
+  const themeMenu = themeControl.locator('.console-dropdown-menu');
+  assert.equal(await themeMenu.isHidden(), true);
+
+  await themeBtn.click();
+  assert.equal(await themeMenu.isHidden(), false);
+  assert.equal(await themeBtn.getAttribute('aria-expanded'), 'true');
+  assert.equal(await themeMenu.locator('.console-dropdown-item').count(), 3);
+
+  await themeMenu.locator('.console-dropdown-item[data-value="dark"]').click();
+  assert.equal(await themeMenu.isHidden(), true);
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'dark');
+  assert.equal(await themeControl.locator('.console-dropdown-value').textContent(), 'dark');
+
+  const langBtn = langControl.locator('.console-dropdown-button');
+  const langMenu = langControl.locator('.console-dropdown-menu');
+  await langBtn.click();
+  assert.equal(await langMenu.isHidden(), false);
+
+  await page.keyboard.press('Escape');
+  assert.equal(await langMenu.isHidden(), true);
+
+  await langBtn.click();
+  assert.equal(await langMenu.isHidden(), false);
+  await page.mouse.click(10, 10);
+  assert.equal(await langMenu.isHidden(), true);
+
   assert.deepEqual(errors, []);
 });

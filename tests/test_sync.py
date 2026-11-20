@@ -100,6 +100,60 @@ class SuiteContracts(unittest.TestCase):
                     stale.unlink()
             self.assertEqual(run('--check').returncode, 0)
 
+    def test_check_compares_hand_written_headers_with_the_include(self):
+        include = (ROOT / '_includes/console-header.html').read_text()
+        sys.path.insert(0, str(ROOT / 'scripts'))
+        from header_contract import extract_header, strip_liquid
+        # What a Node site writes: the include's markup without Liquid or the home-only links.
+        header = strip_liquid(extract_header(include, 'include'))
+        # A Node adapter: the same markup inside a template literal, with its own links and interpolations.
+        adapter = 'const page = `' + header.replace('<div class="console-tools">', '${nav.map(item => `<a href="${item.url}">${item.label}</a>`).join(\'\')}<div class="console-tools">') + '`;\n'
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            _, run = self.targets(base)
+
+            def check():
+                self.assertEqual(run().returncode, 0)
+                return run('--check')
+
+            self.assertEqual(check().returncode, 0, 'a target without a build script has no header to compare')
+            for name in ['execmap', 'wire']:
+                script = base / name / 'scripts/build.mjs'
+                script.parent.mkdir()
+                script.write_text(adapter)
+            self.assertEqual(check().returncode, 0)
+
+            cases = {
+                'language moved out of the tools': (
+                    lambda text: text.replace(language, '').replace('<button class="console-menu"', language + '<button class="console-menu"'),
+                    'div.console-header-actions > label.console-language'),
+                'project menu is not a nav': (
+                    lambda text: text.replace('<nav class="console-project-menu"', '<div class="console-project-menu"'),
+                    'div.console-project-menu'),
+                'theme select lost its id': (
+                    lambda text: text.replace(' id="console-theme-select"', ''),
+                    'select id=console-theme-select'),
+                'actions follow the navigation': (
+                    lambda text: text.replace(actions, '').replace('</nav>\n  </div>\n</header>', '</nav>\n' + actions + '\n  </div>\n</header>'),
+                    'out of order'),
+                'header is gone': (lambda text: 'const page = ``;\n', 'expected one <header'),
+            }
+            language = header[header.index('<label class="console-language">'):header.index('</label>', header.index('<label class="console-language">')) + len('</label>')]
+            actions = header[header.index('<div class="console-header-actions">'):header.index('</div>', header.index('<div class="console-header-actions">')) + len('</div>')]
+            script = base / 'execmap/scripts/build.mjs'
+            for label, (change, expected) in cases.items():
+                with self.subTest(label):
+                    changed = change(adapter)
+                    self.assertNotEqual(changed, adapter)
+                    script.write_text(changed)
+                    result = check()
+                    self.assertEqual(result.returncode, 1)
+                    self.assertIn(str(script), result.stdout)
+                    self.assertIn(expected, result.stdout)
+                    self.assertEqual(script.read_text(), changed, 'sync never rewrites hand-written markup')
+            script.write_text(adapter)
+            self.assertEqual(check().returncode, 0)
+
     def test_commit_is_limited_to_synced_files_and_refuses_other_branches(self):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)

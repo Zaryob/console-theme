@@ -49,6 +49,7 @@ console-theme/
 ├── artwork/                  # Social card and home hero templates; `node artwork/make.cjs <outDir>` renders them
 ├── scripts/
 │   ├── sync.py               # Copies the files above to the sibling repositories; --check verifies them
+│   ├── header_contract.py    # Compares the hand-written Execmap and Wire headers with the include
 │   ├── check_i18n.py         # Vocabulary validation (duplicate keys, placeholders)
 │   └── check_typography.cjs  # Browser typography matrix against a local suite preview
 ├── tests/
@@ -130,6 +131,14 @@ canonical. Site-owned files that belong there are listed per target in
 `ALLOWED_EXTRAS` in `scripts/sync.py` (currently `bundle.scss` and `site.css`
 in the home site, `syscall.css` in Syscall, `COPYING` in Execmap and Wire); copy mode
 reports other extras and never deletes them.
+
+Execmap and Wire do not render the include: each writes the header by hand in
+its `scripts/build.mjs`. `--check` therefore compares the structure of that
+header with `_includes/console-header.html` (`scripts/header_contract.py`):
+every `console-*` element, its nesting and order, and the ids, form names,
+ARIA wiring and `data-console-*` hooks on it. Text, link targets, icons and a
+site's own navigation links are not compared. A difference is reported, never
+rewritten; fix it in the site's build script.
 
 To add the theme to a new site, add the target to `scripts/sync.py` and run it.
 

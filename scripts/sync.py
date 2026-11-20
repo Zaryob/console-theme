@@ -24,7 +24,8 @@ Usage:
 
 Every target is validated before the first file is copied. --check also rejects
 files in a target's assets/console/ that are neither canonical nor listed in
-ALLOWED_EXTRAS. --commit and --auto-commit require every target to be on its
+ALLOWED_EXTRAS, and compares the hand-written header of each Node site
+(HEADER_ADAPTERS) with the canonical include. --commit and --auto-commit require every target to be on its
 main branch and commit only the files this script wrote.
 """
 
@@ -34,6 +35,7 @@ import shutil
 import subprocess
 import sys
 from check_i18n import validate
+from header_contract import compare as compare_header
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 WORKSPACE_ROOT = REPO_ROOT.parent
@@ -61,6 +63,12 @@ ALLOWED_EXTRAS = {
     'zaryob.github.io': {'bundle.scss', 'site.css', 'home-picks.js'},
     'execmap': {'COPYING'},
     'wire': {'COPYING'},
+}
+# Node sites write the header by hand in their build script instead of rendering
+# the include, so --check compares its structure with _includes/console-header.html.
+HEADER_ADAPTERS = {
+    'execmap': 'scripts/build.mjs',
+    'wire': 'scripts/build.mjs',
 }
 IGNORED_NAMES = {'.DS_Store'}
 COMMIT_BRANCH = 'main'
@@ -180,6 +188,7 @@ def main():
     # so a missing or unsuitable target cannot leave the suite half-synchronized.
     problems = []
     extras = []
+    headers = []
     plan = {}
     for name, repo_path, target_base in targets:
         if not repo_path.is_dir():
@@ -198,6 +207,11 @@ def main():
             pairs.append((REPO_ROOT / '_data' / dat, target_base / ('console-projects.json' if name in {'execmap', 'wire'} else f'_data/{dat}')))
         plan[repo_path] = [(src, dst) for src, dst in pairs if src.is_file()]
 
+        # A target without a build script yet has no header to compare.
+        adapter = repo_path / HEADER_ADAPTERS[name] if name in HEADER_ADAPTERS else None
+        if adapter and adapter.is_file():
+            headers += compare_header(REPO_ROOT / '_includes' / 'console-header.html', adapter)
+
         target_assets = target_base / 'assets' / 'console'
         if target_assets.is_dir():
             for found in sorted(target_assets.rglob('*')):
@@ -210,7 +224,7 @@ def main():
     if args.check:
         differences = [str(dst) for src, dst in internal_pairs if differs(src, dst)] + problems
         differences += [str(dst) for pairs in plan.values() for src, dst in pairs if differs(src, dst)]
-        differences += extras
+        differences += extras + headers
         if differences:
             print("Console theme differences found:")
             for diff in differences:
@@ -250,6 +264,11 @@ def main():
         print("Unexpected files left in place (--check will fail until resolved):")
         for extra in extras:
             print(f"  - {extra}")
+    if headers:
+        # Hand-written markup is never rewritten here: fix it in the site's build script.
+        print("Header differences left in place (--check will fail until resolved):")
+        for header in headers:
+            print(f"  - {header}")
 
     if commit_msg:
         failed = False

@@ -49,6 +49,7 @@ console-theme/
 ├── artwork/                  # Paylaşım kartı ve ana sayfa görseli şablonları; `node artwork/make.cjs <klasör>` ile üretilir
 ├── scripts/
 │   ├── sync.py               # Yukarıdaki dosyaları kardeş depolara kopyalar; --check doğrular
+│   ├── header_contract.py    # Elle yazılan Execmap ve Wire başlıklarını include ile karşılaştırır
 │   ├── check_i18n.py         # Sözlük doğrulaması (yinelenen anahtarlar, yer tutucular)
 │   └── check_typography.cjs  # Yerel önizlemeye karşı tarayıcıda tipografi matrisi
 ├── tests/
@@ -128,6 +129,14 @@ da reddeder. Oraya ait olan siteye özgü dosyalar `scripts/sync.py` içindeki
 `ALLOWED_EXTRAS` listesinde hedef başına tanımlıdır (şu an ana sitede `bundle.scss` ve
 `site.css`, Syscall'da `syscall.css`, Execmap ve Wire'da `COPYING`); kopyalama kipi diğer fazla
 dosyaları bildirir ve hiçbirini silmez.
+
+Execmap ve Wire include'u işlemez; ikisi de başlığı kendi `scripts/build.mjs`
+dosyasında elle yazar. Bu yüzden `--check`, o başlığın yapısını
+`_includes/console-header.html` ile karşılaştırır (`scripts/header_contract.py`):
+her `console-*` öğesi, iç içe düzeni ve sırası, üzerindeki id'ler, form adları,
+ARIA bağlantıları ve `data-console-*` kancaları. Metinler, bağlantı hedefleri,
+simgeler ve sitenin kendi gezinme bağlantıları karşılaştırılmaz. Fark yalnız
+bildirilir, yeniden yazılmaz; sitenin derleme betiğinde düzeltilir.
 
 Temayı yeni bir siteye eklemek için hedefi `scripts/sync.py` dosyasına ekleyip betiği
 çalıştırın.
